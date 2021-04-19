@@ -6,17 +6,18 @@ export interface PlayerState {
 
 export interface GameState {
     players: {
+        p0: PlayerState
         p1: PlayerState
-        p2: PlayerState
     }
     deck: Card[]
 }
 
 export interface Board {
-    cells: Number[]
+    cells: Card[]
 }
 
 export interface Card {
     name: string
     basePoints: number
+    id?: string
 }
