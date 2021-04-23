@@ -1,3 +1,14 @@
+export type CardColor = 'green' | 'blue' | 'red' | 'gold'
+export type CellColor = CardColor | 'neutral'
+
+export interface CardSlot {
+    card?: Card
+    //row: number
+    //col: number
+    index: number
+    color: CellColor
+}
+
 export interface PlayerState {
     board: Board
     hand: Card[]
@@ -13,11 +24,14 @@ export interface GameState {
 }
 
 export interface Board {
-    cells: Card[]
+    cardSlots: CardSlot[]
+    rows: number
+    cols: number
 }
 
 export interface Card {
     name: string
     basePoints: number
+    color: CardColor
     id?: string
 }

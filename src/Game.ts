@@ -1,7 +1,8 @@
-import { Card, GameState, PlayerState } from "./Board";
+import { Card, GameState, PlayerState, CardSlot, CellColor } from "./Board";
 import './App.css';
 import { Ctx, Game } from 'boardgame.io';
 import { INVALID_MOVE } from 'boardgame.io/core'
+import { Merchant, Spy, Fisherman, Priest, Standard, Thief } from './Cards'
 import fp from 'lodash/fp'
 import _ from 'lodash'
 
@@ -14,7 +15,7 @@ const getCardOnHand = (G: GameState, player: Player, cardId: string) => {
 }
 
 
-const updatePlayer = (G: GameState, player: Player, updater: (playerState: PlayerState) => any): GameState => {
+const updatePlayer = (player: Player, updater: (playerState: PlayerState) => Partial<PlayerState>) => (G: GameState) => {
     return fp.update(['players', player], (playerState: PlayerState) => ({
         ...playerState,
         ...updater(playerState)
@@ -22,23 +23,22 @@ const updatePlayer = (G: GameState, player: Player, updater: (playerState: Playe
 }
 
 const addCardToBoard = (player: Player, card: Card, boardCell: number) => (G: GameState) => {
-    G.players[player].board.cells[boardCell] = card
+    G.players[player].board.cardSlots[boardCell].card = card
     //return updatePlayer(G, player, ({ board }) => {
     //return { board }
     //})
 }
 
-const addCardToHand = (ctx: Ctx, player: Player, card: Card) => (G: GameState) => {
+const addCardToHand = (ctx: Ctx, player: Player, card: Card) => {
     const id = `${player}-${ctx.random?.Number().toFixed(4)}`
     const newCard = { ...card, id }
-    return updatePlayer(G, player, playerState => ({
-        ...playerState,
+    return updatePlayer(player, playerState => ({
         hand: [...playerState.hand, newCard],
     }))
 }
 
-const removeCardFromHand = (player: Player, cardId: string) => (G: GameState) => {
-    return updatePlayer(G, player, playerState => ({
+const removeCardFromHand = (player: Player, cardId: string) => {
+    return updatePlayer(player, playerState => ({
         hand: playerState.hand.filter(card => card.id !== cardId)
     }))
 }
@@ -56,97 +56,107 @@ const drawCard = (ctx: Ctx, player: Player) => (G: GameState) => {
     return G
 }
 
+function playCard(G: GameState, ctx: Ctx, cardId: string, boardCell: number) {
+    const player = 'p' + ctx.currentPlayer as Player
+    console.log(player, cardId, boardCell)
+    const card = getCardOnHand(G, player, cardId)
+    if (!card) {
+        return INVALID_MOVE
+    }
+    const playerBoard = getPlayer(G, player).board
+    if (playerBoard.cardSlots[boardCell].card) {
+        console.log("Occupied")
+        return INVALID_MOVE
+    }
+    if (card.color !== 'gold' && card.color !== playerBoard.cardSlots[boardCell].color) {
+        console.log("Bad color")
+        return INVALID_MOVE
+    }
+    return fp.flow(
+        removeCardFromHand(player, cardId),
+        addCardToBoard(player, card, boardCell)
+    )(G)
+}
 
-const Madrigal: Game<GameState> = {
-    setup(ctx): GameState {
-        const emptyPlayerState: PlayerState = {
+function setup(ctx: Ctx): GameState {
+    const n_cols = 6
+    function makeEmptyCardSlotRow(color: CellColor, row: number): CardSlot[] {
+        const rowStartIndex = row * n_cols
+        return [
+            {
+                index: rowStartIndex,
+                color: 'neutral',
+            },
+            ..._.range(1,5).map(index => ({
+                index: rowStartIndex + index,
+                color,
+            })),
+            {
+                index: rowStartIndex + 5,
+                color: 'neutral'
+            },
+        ]
+    }
+    
+    const rowColors : CellColor[] = ['blue', 'green', 'red']
+    const emptyPlayerState = (player: Player) : PlayerState => {
+        const orderedRowColors = player === 'p0' ? rowColors : _.reverse(rowColors)
+        return {
             board: {
-                cells: Array(12).fill(null),
+                cardSlots: _.flatMap<CellColor, CardSlot>(orderedRowColors, makeEmptyCardSlotRow),
+                cols: n_cols,
+                rows: rowColors.length,
             },
             hand: [],
             graveyard: [],
         }
-        const gameState = {
-            players: {
-                p0: emptyPlayerState,
-                p1: emptyPlayerState,
-            },
-            deck: [
-                {
-                    name: 'Spy',
-                    basePoints: 1,
-                },
-                {
-                    name: 'Merchant',
-                    basePoints: 6,
-                },
-                {
-                    name: 'Fisherman',
-                    basePoints: 3,
-                },
-            ],
-        }
-        const p0startingCards: Card[] = [
-            {
-                name: 'Die Priesterin',
-                basePoints: 7,
-            },
-            {
-                name: 'Standard',
-                basePoints: 12,
-            },
-            {
-                name: 'Thief',
-                basePoints: 2,
-            },
-        ]
-        const p1startingCards: Card[] = [
-            {
-                name: 'Spy',
-                basePoints: 1,
-            },
-            {
-                name: 'Merchant',
-                basePoints: 6,
-            },
-            {
-                name: 'Fisherman',
-                basePoints: 3,
-            },
-        ]
-
-        const addStartingCard = fp.flow(
-            [
-                ...p0startingCards.map(card => addCardToHand(ctx, 'p0', card)),
-                ...p1startingCards.map(card => addCardToHand(ctx, 'p1', card))
-            ]
-        )
-
-        return addStartingCard(gameState)
-    },
-    moves: {
-        placeCard: (G, ctx, cardId: string, boardCell: number) => {
-            const player = 'p' + ctx.currentPlayer as Player
-            console.log(player, cardId, boardCell)
-            if (getPlayer(G, player).board.cells[boardCell]) {
-                console.log("Occupied")
-                return INVALID_MOVE
-            }
-            const card = getCardOnHand(G, player, cardId)
-            if (card) {
-                return fp.flow(
-                    removeCardFromHand(player, cardId),
-                    addCardToBoard(player, card, boardCell)
-                )(G)
-            }
-            console.log("Invalid card")
-            return INVALID_MOVE
+    }
+    const gameState : GameState = {
+        players: {
+            p0: emptyPlayerState('p0'),
+            p1: emptyPlayerState('p1'),
         },
-        drawCard: (G, ctx) => {
+        deck: [
+            Spy('red'),
+            Merchant('red'),
+            Fisherman('red'),
+        ],
+    }
+    const p0startingCards: Card[] = [
+        Priest('blue'),
+        Standard('blue'),
+        Thief('blue'),
+    ]
+    const p1startingCards: Card[] = [
+        Spy('green'),
+        Merchant('green'),
+        Fisherman('green'),
+    ]
+
+    const addStartingCard = fp.flow(
+        [
+            ...p0startingCards.map(card => addCardToHand(ctx, 'p0', card)),
+            ...p1startingCards.map(card => addCardToHand(ctx, 'p1', card))
+        ]
+    )
+
+    return addStartingCard(gameState)
+}
+
+
+const Madrigal: Game<GameState> = {
+    setup,
+    turn: {
+        moveLimit: 1,
+        onBegin: (G, ctx) => {
             const player = 'p' + ctx.currentPlayer as Player
             return drawCard(ctx, player)(G)
-        }
+        },
     },
+    moves: {
+        playCard,
+    },
+
 }
 
 export { Madrigal }
