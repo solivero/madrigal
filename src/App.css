@@ -28,6 +28,32 @@
   color: #61dafb;
 }
 
+
+.Card-Hand {
+  background-color: darkgray;
+  height: 135px;
+  width: 90px;
+  margin: 5px;
+  border-radius: 5px;
+  border-color: darkgray;
+  overflow: hidden;
+}
+
+.Card-Hand:hover {
+  background-color: lightgray;
+  transform: scale(1.6);
+  animation: Card-Zoom-In 0.2s linear;
+}
+
+@keyframes Card-Zoom-In {
+  from {
+    transform: scale(1.0);
+  }
+  to {
+    transform: scale(1.6);
+  }
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
