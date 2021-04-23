@@ -3,7 +3,7 @@ import { Client } from 'boardgame.io/react';
 import { Madrigal } from './Game';
 import { GameState, Card, Board } from './Board'
 import React from 'react';
-import { range, reverse } from 'lodash'
+import { range } from 'lodash'
 
 interface Props {
   moves: any;
@@ -23,11 +23,13 @@ const cardStyle: React.CSSProperties = {
   margin: 5,
 }
 
+type Player = 'p0' | 'p1'
+
 const CardRender = ({ card }: { card: Card }) => (
   <div style={cardStyle}>{card.name}</div>
 )
 
-function PlayerHand(props: { player: 'p0' | 'p1', hand: Card[] }): JSX.Element {
+function PlayerHand(props: { player: Player, hand: Card[] }): JSX.Element {
   return <div style={{ margin: 'auto', display: 'flex', justifyContent: 'center' }}>
     {props.hand.map(card => <CardRender card={card} />)}
   </div>
@@ -42,7 +44,7 @@ const cardSlotStyle: React.CSSProperties = {
   textAlign: 'center',
 }
 
-function CardSlot({ color, card }: { color: string, card: Card | null }): JSX.Element {
+function CardSlot({ color, card }: { color: string, card?: Card }): JSX.Element {
   const style = {
     ...cardSlotStyle,
     borderColor: color,
@@ -54,12 +56,14 @@ function CardSlot({ color, card }: { color: string, card: Card | null }): JSX.El
   )
 }
 
-function PlayerBoard(props: { player: 'p0' | 'p1', board: Board }): JSX.Element {
+function PlayerBoard(props: { player: Player, board: Board }): JSX.Element {
 
-  const rowColors = ['red', 'green', 'blue']
-  const orderedRowColors = props.player === 'p0' ? rowColors : reverse(rowColors)
-  const rowSlots = orderedRowColors.map((color, row) => {
-    return range(4).map(col => <CardSlot color={color} card={props.board.cells[row * 3 + col]} />)
+  const rows = range(props.board.rows)
+  //const orderedRowColors = props.player === 'p0' ? rowColors : reverse(rowColors)
+  const rowSlots = rows.map(row => {
+    const startIndex = row * props.board.cols
+    const slots = props.board.cardSlots.slice(startIndex, startIndex + props.board.cols)
+    return slots.map(cardSlot => <CardSlot color={cardSlot.color} card={cardSlot.card} />)
   })
   const playerBoard = rowSlots.map(cardSlots => <tr>{cardSlots}</tr>);
   return (
