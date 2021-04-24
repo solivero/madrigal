@@ -1,5 +1,6 @@
 export type CardColor = 'green' | 'blue' | 'red' | 'gold'
 export type CellColor = CardColor | 'neutral'
+export type Player = 'p0' | 'p1'
 
 export interface CardSlot {
     card?: Card

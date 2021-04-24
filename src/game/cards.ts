@@ -1,4 +1,4 @@
-import { Card, CardColor } from "./Board"
+import { Card, CardColor } from '../models'
 
 export const Priest = (color: CardColor): Card => ({
     name: 'Spy',
