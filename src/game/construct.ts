@@ -1,6 +1,6 @@
 import fp from 'lodash/fp'
 import _ from 'lodash'
-import { Card, GameState, PlayerState, Player } from '../models'
+import { Card, GameState, PlayerState, Player, CardSlot } from '../models'
 import { Ctx } from 'boardgame.io';
 
 type GameStateProducer = (G: GameState) => GameState
@@ -21,13 +21,40 @@ function updatePlayer(player: Player, updater: (playerState: PlayerState) => Par
     }))
 }
 
+function countPlayerPoints(player: Player): GameStateProducer {
+    const getSlotsWithCard = fp.filter((cardSlot: CardSlot) => Boolean(cardSlot?.card))
+    const getCards = fp.map((cardSlot: CardSlot) => cardSlot.card as Card)
+    const sumPoints = fp.sumBy((card: Card) => card.points)
+    const tallyBoardPoints = fp.flow(
+        getSlotsWithCard,
+        getCards,
+        sumPoints
+    )
+    return updatePlayer(player, (playerState: PlayerState) => ({
+        points: tallyBoardPoints(playerState.board.cardSlots)
+    }))
+}
+
 function addCardToBoard(player: Player, card: Card, boardCell: number) {
-    return (G: GameState) => {
-        G.players[player].board.cardSlots[boardCell].card = card //ImmerJS magic makes mutating work when it shouldn't
-        //return updatePlayer(G, player, ({ board }) => {
-        //return { board }
-        //})
-    }
+
+    // Ridicoulus verbose to update deep structure while avoiding immer error
+    return updatePlayer(player, ({ board }) => {
+        const cardSlots = board.cardSlots.map(cardSlot => {
+            if (cardSlot.index === boardCell) {
+                return {
+                    ...cardSlot,
+                    card,
+                }
+            }
+            return cardSlot
+        })
+        return {
+            board: {
+                ...board,
+                cardSlots,
+            }
+        }
+    })
 }
 
 function addCardToHand(ctx: Ctx, player: Player, card: Card): GameStateProducer {
@@ -66,4 +93,5 @@ export {
     addCardToHand,
     getPlayer,
     getCardOnHand,
+    countPlayerPoints,
 }

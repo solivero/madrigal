@@ -1,7 +1,7 @@
 import { Card, GameState, PlayerState, CardSlot, CellColor, Player } from '../models'
 import { Ctx, Game } from 'boardgame.io';
 import { Merchant, Spy, Fisherman, Priest, Standard, Thief } from './cards'
-import { addCardToHand, drawCard } from './construct'
+import { addCardToHand, countPlayerPoints, drawCard } from './construct'
 import { playCard } from './moves'
 import fp from 'lodash/fp'
 import _ from 'lodash'
@@ -15,7 +15,7 @@ function setup(ctx: Ctx): GameState {
                 index: rowStartIndex,
                 color: 'neutral',
             },
-            ..._.range(1,5).map(index => ({
+            ..._.range(1, 5).map(index => ({
                 index: rowStartIndex + index,
                 color,
             })),
@@ -25,9 +25,9 @@ function setup(ctx: Ctx): GameState {
             },
         ]
     }
-    
-    const rowColors : CellColor[] = ['blue', 'green', 'red']
-    const emptyPlayerState = (player: Player) : PlayerState => {
+
+    const rowColors: CellColor[] = ['red', 'blue', 'green']
+    const emptyPlayerState = (player: Player): PlayerState => {
         const orderedRowColors = player === 'p0' ? rowColors : _.reverse(rowColors)
         return {
             board: {
@@ -37,9 +37,10 @@ function setup(ctx: Ctx): GameState {
             },
             hand: [],
             graveyard: [],
+            points: 0,
         }
     }
-    const gameState : GameState = {
+    const gameState: GameState = {
         players: {
             p0: emptyPlayerState('p0'),
             p1: emptyPlayerState('p1'),
@@ -71,14 +72,17 @@ function setup(ctx: Ctx): GameState {
     return addStartingCard(gameState)
 }
 
-
 const Madrigal: Game<GameState> = {
     setup,
     turn: {
         moveLimit: 1,
         onBegin: (G, ctx) => {
             const player = 'p' + ctx.currentPlayer as Player
-            return drawCard(ctx, player)(G)
+            return fp.flow(
+                drawCard(ctx, player),
+                countPlayerPoints('p0'),
+                countPlayerPoints('p1')
+            )(G)
         },
     },
     moves: {

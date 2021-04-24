@@ -14,6 +14,7 @@ export interface PlayerState {
     board: Board
     hand: Card[]
     graveyard: Card[]
+    points: number
 }
 
 export interface GameState {
@@ -34,5 +35,6 @@ export interface Card {
     name: string
     basePoints: number
     color: CardColor
+    points: number
     id?: string
 }

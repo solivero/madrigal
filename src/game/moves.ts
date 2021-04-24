@@ -27,6 +27,11 @@ function playCard(G: GameState, ctx: Ctx, cardId: string, boardCell: number) {
     )(G)
 }
 
+function pass(G: GameState, ctx: Ctx): GameState {
+    return G
+}
+
 export {
-    playCard
+    playCard,
+    pass
 }
