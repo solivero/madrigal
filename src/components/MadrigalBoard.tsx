@@ -19,7 +19,11 @@ const cardStyle: React.CSSProperties = {
   lineHeight: '20px',
   textAlign: 'center',
   margin: 3,
-  backgroundColor: 'darkgray'
+  backgroundColor: 'darkgray',
+  backgroundImage: 'url(cardimages/default.jpg)',
+  backgroundSize: '100%',
+  outlineStyle: 'solid',
+  outlineColor: 'transparent'
 }
 
 const legacyPlayerHandCardStyle: React.CSSProperties = {
@@ -34,7 +38,7 @@ const legacyPlayerHandCardStyle: React.CSSProperties = {
 }
 
 const CardComp = ({ card }: { card: Card }) => (
-  <div style={{ ...cardStyle, borderColor: card.color }}>
+  <div style={{ ...cardStyle, borderColor: card.color, backgroundImage: `url(${card.imageUrl})` }}>
     <p>{card.name}</p>
     <p>{card.points}</p>
   </div>
@@ -49,8 +53,11 @@ interface PlayerHandCardProps {
 const PlayerHandCardComp = ({ card, onSelect, selected, hidden }: PlayerHandCardProps) => {
   const style = {
     ...cardStyle,
-    borderColor: card.color,
-    backgroundColor: selected ? 'white' : cardStyle.backgroundColor
+    borderColor: hidden ? 'transparent' : card.color,
+    outlineWidth: selected ? 2 : 0,
+    outlineColor: selected ? 'white' : 'transparent',
+    // outline: selected ? '2px solid rbga(255, 255, 255, 1)' : '2px solid inherit',
+    backgroundImage: hidden ? '' : `url(${card.imageUrl})`
   }
   return (
     <div

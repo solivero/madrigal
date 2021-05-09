@@ -1,7 +1,7 @@
 import fp from 'lodash/fp'
 import _ from 'lodash'
-import { Card, GameState, PlayerState, Player, CardSlot, CardColor } from '../models'
-import { Spy1, Spy2, Fisherman, FieldMarshal, Farmer, Fog, Jester, Hero, Merchant, Warrior, Priest, Smith, Standard } from './cards'
+import { Card, GameState, Board, PlayerState, Player, CardSlot, CardColor } from '../models'
+import { Spy1, Spy2, Fisherman, FieldMarshal, Farmer, Fog, Jester, Merchant, Warrior, Priest, Smith, Standard, Treasurer, Queen, King } from './cards'
 
 import { Ctx } from 'boardgame.io'
 
@@ -9,7 +9,7 @@ type GameStateProducer = (G: GameState) => GameState
 
 function makeShuffledDeck (ctx: Ctx): Card[] {
   const colors: CardColor[] = ['green', 'blue', 'red', 'gold']
-  const cardFuncs: ((color: CardColor) => Card)[] = [Spy1, Spy2, FieldMarshal, Fisherman, Farmer, Merchant, Warrior, Priest, Smith, Standard, Hero(10), Hero(11), Hero(12), Fog, Jester]
+  const cardFuncs: ((color: CardColor) => Card)[] = [Spy1, Spy2, FieldMarshal, Fisherman, Farmer, Merchant, Warrior, Priest, Smith, Standard, Treasurer, Queen, King, Fog, Jester]
   const cards = _.flatMap(cardFuncs, cardFunc => _.map(colors, cardFunc))
   const deck = ctx.random?.Shuffle(cards)
   if (deck) {
@@ -31,6 +31,70 @@ function updatePlayer (player: Player, updater: (playerState: PlayerState) => Pa
     ...playerState,
     ...updater(playerState)
   }))
+}
+function updatePlayerBoard (player: Player, updater: (board: Board) => Partial<Board>): GameStateProducer {
+  return updatePlayer(player, ({ board }) => ({
+    board: {
+      ...board,
+      ...updater(_.cloneDeep(board))
+    }
+  }))
+}
+function getColumn (board: Board, colIdx: number): CardSlot[] {
+  return _.times(board.rows).map(rowIdx => board.cardSlots[(board.cols * rowIdx) + colIdx])
+}
+
+function getRow (board: Board, rowIdx: number): CardSlot[] {
+  const startIdx = rowIdx * board.cols
+  const endIdx = startIdx + board.cols
+  return board.cardSlots.slice(startIdx, endIdx)
+}
+
+function addColumnBuffs (player: Player): GameStateProducer {
+  return updatePlayerBoard(player, board => {
+    const buffedBoard = board.cardSlots.map(slot => {
+      if (!slot?.card) {
+        return slot
+      }
+      if (slot.card.isHero) {
+        return slot
+      }
+      const { card } = slot
+      const smithBuff = getSmithBuff(board, slot)
+      const columnBuff = getColumnBuff(board, slot)
+      const points = _.sum([card.basePoints, smithBuff, columnBuff])
+      const buffedCard = {
+        ...card,
+        points
+      }
+      return {
+        ...slot,
+        card: buffedCard
+      }
+    })
+    return {
+      cardSlots: buffedBoard
+    }
+  })
+}
+
+function getColumnBuff (board: Board, slot: CardSlot): number {
+  const card = slot.card as Card
+  const colIdx = slot.index % board.cols
+  const col = getColumn(board, colIdx)
+  const sameCards = col.filter(cardSlot => cardSlot?.card && cardSlot.card.basePoints === card.basePoints)
+  const points = card.basePoints * (sameCards.length - 1)
+  return points
+}
+
+function getSmithBuff (board: Board, slot: CardSlot): number {
+  const rowIdx = Math.floor(slot.index / board.cols)
+  const row = getRow(board, rowIdx)
+  const smith = row.find(cardSlot => cardSlot?.card && cardSlot.card.basePoints === 5)
+  if (smith) {
+    return 1
+  }
+  return 0
 }
 
 function countPlayerPoints (player: Player): GameStateProducer {
@@ -136,5 +200,6 @@ export {
   makeShuffledDeck,
   setPlayerPassed,
   incrementGame,
-  boardToGraveyard
+  boardToGraveyard,
+  addColumnBuffs
 }

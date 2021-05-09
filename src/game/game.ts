@@ -1,6 +1,6 @@
 import { GameState, PlayerState, CardSlot, CellColor, Player } from '../models'
 import { Ctx, Game } from 'boardgame.io'
-import { countPlayerPoints, drawCard, getPlayer, makeShuffledDeck, boardToGraveyard, incrementGame, setPlayerPassed } from './construct'
+import { countPlayerPoints, drawCard, getPlayer, makeShuffledDeck, boardToGraveyard, incrementGame, setPlayerPassed, addColumnBuffs } from './construct'
 import { playCard, pass } from './moves'
 import fp from 'lodash/fp'
 import _ from 'lodash'
@@ -93,6 +93,8 @@ const Madrigal: Game<GameState> = {
       // const player = 'p' + ctx.currentPlayer as Player
       return fp.flow(
         // drawCard(ctx, player),
+        addColumnBuffs('p0'),
+        addColumnBuffs('p1'),
         countPlayerPoints('p0'),
         countPlayerPoints('p1')
       )(G)
