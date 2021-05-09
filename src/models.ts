@@ -7,6 +7,8 @@ export interface Card {
     basePoints: number
     color: CardColor
     points: number
+    imageUrl: string
+    isHero: boolean
     id?: string
 }
 
@@ -38,5 +40,5 @@ export interface GameState {
         p0: PlayerState
         p1: PlayerState
     }
-    deck: Card[],
+    deck: Card[]
 }
