@@ -1,44 +1,46 @@
-export type CardColor = 'green' | 'blue' | 'red' | 'gold'
-export type CellColor = CardColor | 'neutral'
-export type Player = 'p0' | 'p1'
+import { Ctx } from "boardgame.io";
+export type CardColor = "green" | "blue" | "red" | "gold";
+export type CellColor = CardColor | "neutral";
+export type Player = "p0" | "p1";
 
 export interface Card {
-    name: string
-    basePoints: number
-    color: CardColor
-    points: number
-    imageUrl: string
-    isHero: boolean
-    id?: string
+  name: string;
+  basePoints: number;
+  color: CardColor;
+  points: number;
+  imageUrl: string;
+  isHero: boolean;
+  id?: string;
+  onPlace?: (G: GameState, ctx: Ctx) => GameState;
 }
 
 export interface CardSlot {
-    card?: Card
-    // row: number
-    // col: number
-    index: number
-    color: CellColor
+  card?: Card;
+  // row: number
+  // col: number
+  index: number;
+  color: CellColor;
 }
 
 export interface Board {
-    cardSlots: CardSlot[]
-    rows: number
-    cols: number
+  cardSlots: CardSlot[];
+  rows: number;
+  cols: number;
 }
 
 export interface PlayerState {
-    board: Board
-    hand: Card[]
-    graveyard: Card[]
-    points: number
-    games: number
-    passed: boolean
+  board: Board;
+  hand: Card[];
+  graveyard: Card[];
+  points: number;
+  games: number;
+  passed: boolean;
 }
 
 export interface GameState {
-    players: {
-        p0: PlayerState
-        p1: PlayerState
-    }
-    deck: Card[]
+  players: {
+    p0: PlayerState;
+    p1: PlayerState;
+  };
+  deck: Card[];
 }
