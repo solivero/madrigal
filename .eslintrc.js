@@ -6,9 +6,10 @@ module.exports = {
   },
   extends: [
     'plugin:react/recommended',
-    'react-app',
-    'standard'
+    'plugin:prettier/recommended',
+    'react-app'
   ],
+
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaFeatures: {
@@ -19,7 +20,8 @@ module.exports = {
   },
   plugins: [
     'react',
-    '@typescript-eslint'
+    '@typescript-eslint',
+    'prettier'
   ],
   rules: {
     // note you must disable the base rule as it can report incorrect errors
