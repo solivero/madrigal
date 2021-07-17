@@ -28,8 +28,7 @@
   color: #61dafb;
 }
 
-
-.Card-Hand {
+/* .Card-Hand {
   background-color: darkgray;
   height: 135px;
   width: 90px;
@@ -37,20 +36,32 @@
   border-radius: 5px;
   border-color: darkgray;
   overflow: hidden;
+} */
+
+.Card-Hand-Top:hover {
+  transform: scale(2) translate(0px, 30px);
+  animation: Card-Zoom-In-Down 0.3s linear;
 }
 
-.Card-Hand:hover {
-  background-color: lightgray;
-  transform: scale(1.6);
-  animation: Card-Zoom-In 0.2s linear;
+.Card-Hand-Bottom:hover {
+  transform: scale(2) translate(0px, -30px);
+  animation: Card-Zoom-In-Up 0.3s linear;
 }
 
-@keyframes Card-Zoom-In {
+@keyframes Card-Zoom-In-Down {
   from {
-    transform: scale(1.0);
+    transform: scale(1) translate(0px, 0px);
   }
   to {
-    transform: scale(1.6);
+    transform: scale(2) translate(0px, 30px);
+  }
+}
+@keyframes Card-Zoom-In-Up {
+  from {
+    transform: scale(1) translate(0px, 0px);
+  }
+  to {
+    transform: scale(2) translate(0px, -30px);
   }
 }
 
