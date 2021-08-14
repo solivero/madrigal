@@ -3,7 +3,7 @@ import { Ctx, Game } from "boardgame.io";
 import {
   countPlayerPoints,
   drawCard,
-  getPlayer,
+  getPlayerState,
   makeShuffledDeck,
   boardToGraveyard,
   incrementGame,
@@ -16,26 +16,39 @@ import _ from "lodash";
 
 function setup(ctx: Ctx): GameState {
   const nCols = 7;
-  function makeEmptyCardSlotRow(color: CellColor, row: number): CardSlot[] {
-    const rowStartIndex = row * nCols;
-    return [
-      {
-        index: rowStartIndex,
-        color: "neutral",
-      },
-      ..._.range(1, 6).map((index) => ({
-        index: rowStartIndex + index,
-        color,
-      })),
-      {
-        index: rowStartIndex + 6,
-        color: "neutral",
-      },
-    ];
-  }
 
   const rowColors: CellColor[] = ["red", "blue", "green"];
   const emptyPlayerState = (player: Player): PlayerState => {
+    function makeEmptyCardSlotRow(color: CellColor, row: number): CardSlot[] {
+      const rowStartIndex = row * nCols;
+      const endCol = nCols - 1;
+      return [
+        {
+          index: rowStartIndex,
+          color: "neutral",
+          rowColor: color,
+          player,
+          row,
+          col: 0,
+        },
+        ..._.range(1, 6).map((col) => ({
+          index: rowStartIndex + col,
+          color,
+          rowColor: color,
+          player,
+          row,
+          col,
+        })),
+        {
+          index: rowStartIndex + endCol,
+          color: "neutral",
+          rowColor: color,
+          player,
+          row,
+          col: endCol,
+        },
+      ];
+    }
     const orderedRowColors = player === "p0" ? rowColors : _.reverse(rowColors);
     return {
       board: {
@@ -73,8 +86,8 @@ function setup(ctx: Ctx): GameState {
 }
 
 function assignGameWin(G: GameState) {
-  const p0 = getPlayer(G, "p0");
-  const p1 = getPlayer(G, "p1");
+  const p0 = getPlayerState(G, "p0");
+  const p1 = getPlayerState(G, "p1");
   // TODO handle tie. Last card played wins
   const winningPlayer: Player = p0.points > p1.points ? "p0" : "p1";
   return fp.flow(
@@ -85,8 +98,8 @@ function assignGameWin(G: GameState) {
 }
 
 function bothPassed(G: GameState) {
-  const p0 = getPlayer(G, "p0");
-  const p1 = getPlayer(G, "p1");
+  const p0 = getPlayerState(G, "p0");
+  const p1 = getPlayerState(G, "p1");
   return p0.passed && p1.passed;
 }
 
@@ -135,7 +148,7 @@ const Madrigal: Game<GameState> = {
   },
   endIf: (G, ctx) => {
     // TODO count gem. 2 wins
-    const playerWon = (player: Player) => getPlayer(G, player).games === 2;
+    const playerWon = (player: Player) => getPlayerState(G, player).games === 2;
     if (playerWon("p0")) {
       return "Player 1 won!";
     }

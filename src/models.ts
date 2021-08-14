@@ -3,23 +3,34 @@ export type CardColor = "green" | "blue" | "red" | "gold";
 export type CellColor = CardColor | "neutral";
 export type Player = "p0" | "p1";
 
-export interface Card {
-  name: string;
+export type Card = Pick<CardDefinition, "name" | "points" | "isHero"> & {
   basePoints: number;
-  color: CardColor;
-  points: number;
-  imageUrl: string;
-  isHero: boolean;
+  color: CellColor;
   id?: string;
-  onPlace?: (G: GameState, ctx: Ctx) => GameState;
+  imageUrl: string;
+};
+
+type Effect = (G: GameState, ctx: Ctx) => GameState;
+export interface CardDefinition {
+  name: string;
+  points: number;
+  isHero: boolean;
+  onPlace?: Effect;
+  validMoves: (
+    card: Card,
+    playerBoard: Board,
+    opponentBoard: Board
+  ) => { player: number[]; opponent: number[] };
 }
 
 export interface CardSlot {
   card?: Card;
-  // row: number
-  // col: number
+  row: number;
+  col: number;
   index: number;
   color: CellColor;
+  player: Player;
+  rowColor: CellColor;
 }
 
 export interface Board {

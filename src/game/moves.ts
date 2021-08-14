@@ -3,41 +3,60 @@ import fp from "lodash/fp";
 import { Ctx } from "boardgame.io";
 import { GameState, Player } from "../models";
 import {
-  getPlayer,
+  getPlayerState,
   getCardOnHand,
   addCardToBoard,
   removeCardFromHand,
   setPlayerPassed,
+  getOpponent,
+  getCurrentPlayer,
 } from "./construct";
+import { getCardDef } from "./cards";
 
-function playCard(G: GameState, ctx: Ctx, cardId: string, boardCell: number) {
-  const player = ("p" + ctx.currentPlayer) as Player;
+function playCard(
+  G: GameState,
+  ctx: Ctx,
+  cardId: string,
+  boardCell: number,
+  boardPlayer: Player
+) {
+  const player = getCurrentPlayer(ctx);
   console.log(player, cardId, boardCell);
   const card = getCardOnHand(G, player, cardId);
   if (!card) {
     return INVALID_MOVE;
   }
-  const playerBoard = getPlayer(G, player).board;
-  if (playerBoard.cardSlots[boardCell].card) {
+  const board = getPlayerState(G, boardPlayer).board;
+  if (board.cardSlots[boardCell].card) {
     console.log("Occupied");
     return INVALID_MOVE;
   }
-  if (
-    card.color !== "gold" &&
-    card.color !== playerBoard.cardSlots[boardCell].color
-  ) {
-    console.log("Bad color");
+  const playerBoard = getPlayerState(G, player).board;
+  const opponent = getOpponent(player);
+  const opponentBoard = getPlayerState(G, opponent).board;
+  const cardDef = getCardDef(card.name);
+  if (!cardDef) {
+    console.error("No definition for card", card);
+    return INVALID_MOVE;
+  }
+  const validMoves = cardDef?.validMoves(card, playerBoard, opponentBoard);
+  console.log(validMoves);
+  if (boardPlayer === player && !validMoves?.player.includes(boardCell)) {
+    return INVALID_MOVE;
+  }
+  if (boardPlayer === opponent && !validMoves?.opponent.includes(boardCell)) {
     return INVALID_MOVE;
   }
   return fp.flow(
     removeCardFromHand(player, cardId),
-    addCardToBoard(player, card, boardCell),
-    setPlayerPassed(player, false)
+    addCardToBoard(boardPlayer, card, boardCell),
+    setPlayerPassed(player, false),
+    (G) => (cardDef.onPlace ? cardDef.onPlace(G, ctx) : G)
   )(G);
 }
 
 function pass(G: GameState, ctx: Ctx): GameState {
-  const player = ("p" + ctx.currentPlayer) as Player;
+  const player = getCurrentPlayer(ctx);
   return setPlayerPassed(player, true)(G);
 }
 

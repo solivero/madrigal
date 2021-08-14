@@ -9,48 +9,22 @@ import {
   CardSlot,
   CardColor,
 } from "../models";
-import {
-  Spy1,
-  Spy2,
-  Fisherman,
-  FieldMarshal,
-  Farmer,
-  Fog,
-  Jester,
-  Merchant,
-  Warrior,
-  Priest,
-  Smith,
-  Standard,
-  Treasurer,
-  Queen,
-  King,
-} from "./cards";
+import { makeCardConstructor, cardDefinitions, slotIsNeutral } from "./cards";
 
 import { Ctx } from "boardgame.io";
 
 type GameStateProducer = (G: GameState) => GameState;
 
+function getCurrentPlayer(ctx: Ctx) {
+  return ("p" + ctx.currentPlayer) as Player;
+}
+
 function makeShuffledDeck(ctx: Ctx): Card[] {
   const colors: CardColor[] = ["green", "blue", "red", "gold"];
-  const cardFuncs: ((color: CardColor) => Card)[] = [
-    Spy1,
-    Spy2,
-    FieldMarshal,
-    Fisherman,
-    Farmer,
-    Merchant,
-    Warrior,
-    Priest,
-    Smith,
-    Standard,
-    Treasurer,
-    Queen,
-    King,
-    Fog,
-    Jester,
-  ];
-  const cards = _.flatMap(cardFuncs, (cardFunc) => _.map(colors, cardFunc));
+  const cardConstructors = _.map(cardDefinitions, makeCardConstructor);
+  const cards = _.flatMap(cardConstructors, (constructor) =>
+    _.map(colors, constructor)
+  );
   const deck = ctx.random?.Shuffle(cards);
   if (deck) {
     return deck;
@@ -58,7 +32,7 @@ function makeShuffledDeck(ctx: Ctx): Card[] {
   return [];
 }
 
-function getPlayer(G: GameState, player: Player) {
+function getPlayerState(G: GameState, player: Player) {
   return G.players[player];
 }
 
@@ -88,19 +62,50 @@ function getRow(board: Board, rowIdx: number): CardSlot[] {
   return board.cardSlots.slice(startIdx, endIdx);
 }
 
+function getRowEffectSlots(board: Board, rowIdx: number): CardSlot[] {
+  return getRow(board, rowIdx).filter(slotIsNeutral);
+}
+
+function getSlot(board: Board, row: number, col: number): CardSlot {
+  return board.cardSlots[board.cols * row + col];
+}
+
+function getSlotByCardName(cardSlots: CardSlot[], name: string) {
+  return cardSlots.find((slot) => slot.card?.name === name);
+}
+
 function addBuffs(player: Player): GameStateProducer {
+  const determinePoints = (
+    card: Card,
+    buffPoints: number,
+    jester: boolean,
+    fog: boolean
+  ) => {
+    if (jester) {
+      return card.basePoints;
+    }
+    if (fog) {
+      return card.isHero ? card.basePoints : 0;
+    }
+    return card.basePoints + buffPoints;
+  };
   return updatePlayer(player, ({ board }) => {
     const buffedBoard = board.cardSlots.map((slot) => {
       if (!slot?.card) {
         return slot;
       }
-      const { card } = slot;
+      const { card, row } = slot;
       const buffs = [getColumnBuff, getSmithBuff, getFarmerBuff];
       const appliedBuffs = buffs.map((buff) => buff(board, slot));
       const buffPoints = _.sum(appliedBuffs);
+      const effectSlots = getRowEffectSlots(board, row);
+      // TODO fog applies from other board too!
+      const hasFog = !!getSlotByCardName(effectSlots, "Fog");
+      const hasJester = !!getSlotByCardName(effectSlots, "Jester");
+      const points = determinePoints(card, buffPoints, hasJester, hasFog);
       const buffedCard = {
         ...card,
-        points: slot.card.basePoints + buffPoints,
+        points,
       };
       return {
         ...slot,
@@ -249,12 +254,16 @@ function boardToGraveyard(player: Player): GameStateProducer {
   });
 }
 
+function getOpponent(player: Player): Player {
+  return player === "p0" ? "p1" : "p0";
+}
+
 export {
   drawCard,
   removeCardFromHand,
   addCardToBoard,
   addCardToHand,
-  getPlayer,
+  getPlayerState,
   getCardOnHand,
   countPlayerPoints,
   makeShuffledDeck,
@@ -262,4 +271,6 @@ export {
   incrementGame,
   boardToGraveyard,
   addBuffs,
+  getOpponent,
+  getCurrentPlayer,
 };

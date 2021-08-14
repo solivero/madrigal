@@ -2,6 +2,7 @@ import * as React from "react";
 import { Ctx } from "boardgame.io";
 import { GameState, Card, Board, Player, CardSlot } from "../models";
 import { range } from "lodash";
+import { getCurrentPlayer } from "../game/construct";
 
 interface Props {
   moves: any;
@@ -193,7 +194,7 @@ function Deck({ deck }: { deck: Card[] }) {
 function MadrigalBoard({ G, ctx, moves }: Props) {
   const p0 = G.players.p0;
   const p1 = G.players.p1;
-  const currentPlayer: Player = ("p" + ctx.currentPlayer) as Player;
+  const currentPlayer = getCurrentPlayer(ctx);
   const [activeCardId, setActiveCardId] = React.useState<string | null>(null);
   const selectCard = (card: Card) => {
     if (card.id === activeCardId) {
@@ -207,7 +208,11 @@ function MadrigalBoard({ G, ctx, moves }: Props) {
     if (activeCardId) {
       console.log("playCard", activeCardId, cardSlot.index);
       try {
-        const result = moves.playCard(activeCardId, cardSlot.index);
+        const result = moves.playCard(
+          activeCardId,
+          cardSlot.index,
+          cardSlot.player
+        );
         console.log("result", result);
       } catch (e) {
         console.log("Error in playCard");

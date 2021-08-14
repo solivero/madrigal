@@ -1,139 +1,205 @@
-import { Card, CardColor } from "../models";
+import _ from "lodash";
+import fp, { flow } from "lodash/fp";
+import { Board, Card, CardColor, CardDefinition, CardSlot } from "../models";
+import { drawCard, getCurrentPlayer, getPlayerState } from "./construct";
 
 const getImageUrl = (color: CardColor, name: string) =>
   `card_images/${name}-${color}.jpg`;
 
-export const Spy1 = (color: CardColor): Card => ({
-  name: "Spy",
-  basePoints: 1,
-  points: 1,
-  imageUrl: getImageUrl(color, "thief"),
-  isHero: false,
-  color,
-});
+export const makeCardConstructor =
+  (cardDef: CardDefinition) => (color: CardColor) => {
+    const { name, points, isHero } = cardDef;
+    const card: Card = {
+      name,
+      color,
+      isHero,
+      points,
+      basePoints: points,
+      imageUrl: getImageUrl(color, name.toLowerCase()),
+    };
+    return card;
+  };
 
-export const Spy2 = (color: CardColor): Card => ({
-  name: "Thief",
-  basePoints: 2,
-  points: 2,
-  imageUrl: getImageUrl(color, "spy"),
-  isHero: false,
-  color,
-});
+export const getCardDef = (name: string) =>
+  _.find(cardDefinitions, (cardDef) => cardDef.name === name);
 
-export const Fisherman = (color: CardColor): Card => ({
-  name: "Fisherman",
-  basePoints: 3,
-  points: 3,
-  imageUrl: getImageUrl(color, "fisherman"),
-  isHero: false,
-  color,
-});
+export const slotIsNeutral = (slot: CardSlot) => slot.color === "neutral";
+const cardIsGold = (card: Card) => card.color === "gold";
+const getIndexes = fp.map<CardSlot, number>((slot) => slot.index);
 
-export const Farmer = (color: CardColor): Card => ({
-  name: "Farmer",
-  basePoints: 4,
-  points: 4,
-  imageUrl: getImageUrl(color, "farmer"),
-  isHero: false,
-  color,
-});
+const getEffectCardMoves = (
+  card: Card,
+  playerBoard: Board,
+  opponentBoard: Board
+) => {
+  const filterNeutral = fp.filter(slotIsNeutral);
+  const isGoldCard = cardIsGold(card);
+  const matchesRowColor = fp.filter<CardSlot>(
+    (slot) => slot.rowColor === card.color || isGoldCard
+  );
+  const neutralIndexes = flow(filterNeutral, matchesRowColor, getIndexes);
+  return {
+    player: neutralIndexes(playerBoard.cardSlots),
+    opponent: neutralIndexes(opponentBoard.cardSlots),
+  };
+};
 
-export const Smith = (color: CardColor): Card => ({
-  name: "Smith",
-  basePoints: 5,
-  points: 5,
-  imageUrl: getImageUrl(color, "smith"),
-  isHero: false,
-  color,
-});
+const matchingColorMoves = (card: Card, board: Board) => {
+  const filterNotNeutral = fp.filter(fp.complement(slotIsNeutral));
+  const isGoldCard = cardIsGold(card);
+  const matchesSlotColor = fp.filter<CardSlot>(
+    (slot) => slot.color === card.color || isGoldCard
+  );
+  const matchingIndexes = flow(filterNotNeutral, matchesSlotColor, getIndexes);
+  return matchingIndexes(board.cardSlots);
+};
 
-export const Merchant = (color: CardColor): Card => ({
-  name: "Merchant",
-  basePoints: 6,
-  points: 6,
-  imageUrl: getImageUrl(color, "merchant"),
-  isHero: false,
-  color,
-});
+const matchingColorPlayerBoardMoves = (card: Card, playerBoard: Board) => {
+  return {
+    player: matchingColorMoves(card, playerBoard),
+    opponent: [],
+  };
+};
 
-export const Priest = (color: CardColor): Card => ({
-  name: "Priest",
-  basePoints: 7,
-  points: 7,
-  imageUrl: getImageUrl(color, "priest"),
-  isHero: true,
-  color,
-});
+export const cardDefinitions: CardDefinition[] = [
+  {
+    name: "Spy",
+    points: 2,
+    isHero: false,
+    validMoves: (card, playerBoard, opponentBoard) => {
+      return {
+        player: matchingColorMoves(card, playerBoard),
+        opponent: matchingColorMoves(card, opponentBoard),
+      };
+    },
+  },
+  {
+    name: "Thief",
+    points: 2,
+    isHero: false,
+    validMoves: (card, playerBoard, opponentBoard) => {
+      return {
+        player: matchingColorMoves(card, playerBoard),
+        opponent: matchingColorMoves(card, opponentBoard),
+      };
+    },
+  },
+  {
+    name: "Fisherman",
+    points: 3,
+    isHero: false,
+    onPlace: (G, ctx) => {
+      const player = getCurrentPlayer(ctx);
+      return drawCard(ctx, player)(G);
+    },
+    validMoves: matchingColorPlayerBoardMoves,
+  },
 
-export const Warrior = (color: CardColor): Card => ({
-  name: "Warrior",
-  basePoints: 8,
-  points: 8,
-  imageUrl: getImageUrl(color, "warrior"),
-  isHero: false,
-  color,
-});
+  {
+    name: "Farmer",
+    points: 4,
+    isHero: false,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
 
-export const FieldMarshal = (color: CardColor): Card => ({
-  name: "Field marshal",
-  basePoints: 9,
-  points: 9,
-  imageUrl: getImageUrl(color, "fieldmarshal"),
-  isHero: false,
-  color,
-});
+  {
+    name: "Smith",
+    points: 5,
+    isHero: false,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
 
-export const Treasurer = (color: CardColor): Card => ({
-  name: "Treasurer",
-  basePoints: 10,
-  points: 10,
-  imageUrl: getImageUrl(color, "treasurer"),
-  isHero: true,
-  color,
-});
+  {
+    name: "Merchant",
+    points: 6,
+    isHero: false,
+    validMoves: (card, playerBoard, opponentBoard) => {
+      return {
+        player: matchingColorMoves(card, playerBoard),
+        opponent: matchingColorMoves(card, opponentBoard),
+      };
+    },
+  },
 
-export const Queen = (color: CardColor): Card => ({
-  name: "Queen",
-  basePoints: 11,
-  points: 11,
-  imageUrl: getImageUrl(color, "queen"),
-  isHero: true,
-  color,
-});
+  {
+    name: "Priest",
+    points: 7,
+    isHero: true,
+    validMoves: matchingColorPlayerBoardMoves,
+    onPlace: (G, ctx) => {
+      const player = getCurrentPlayer(ctx);
+      const { graveyard } = getPlayerState(G, player);
+      if (graveyard.length === 0) {
+        console.log("Drew card from deck because of empty graveyard");
+        return drawCard(ctx, player)(G);
+      }
+      console.log("Should choose from graveyard");
+      return G;
+    },
+  },
 
-export const King = (color: CardColor): Card => ({
-  name: "Treasurer",
-  basePoints: 12,
-  points: 12,
-  imageUrl: getImageUrl(color, "king"),
-  isHero: true,
-  color,
-});
+  {
+    name: "Warrior",
+    points: 8,
+    isHero: false,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
 
-export const Standard = (color: CardColor): Card => ({
-  name: "Standard",
-  basePoints: 13,
-  points: 13,
-  imageUrl: getImageUrl(color, "standard"),
-  isHero: true,
-  color,
-});
+  {
+    name: "Field marshal",
+    points: 9,
+    isHero: false,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
 
-export const Fog = (color: CardColor): Card => ({
-  name: "Fog",
-  basePoints: 0,
-  points: 0,
-  imageUrl: getImageUrl(color, "fog"),
-  isHero: true,
-  color,
-});
+  {
+    name: "Treasurer",
+    points: 10,
+    isHero: true,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
 
-export const Jester = (color: CardColor): Card => ({
-  name: "Jester",
-  basePoints: 0,
-  points: 0,
-  imageUrl: getImageUrl(color, "jester"),
-  isHero: true,
-  color,
-});
+  {
+    name: "Queen",
+    points: 11,
+    isHero: true,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
+
+  {
+    name: "Treasurer",
+    points: 12,
+    isHero: true,
+    validMoves: matchingColorPlayerBoardMoves,
+  },
+
+  {
+    name: "Standard",
+    points: 13,
+    isHero: true,
+    validMoves: (card, playerBoard) => {
+      const isGoldCard = cardIsGold(card);
+      const matchesRowColor = fp.filter<CardSlot>(
+        (slot) => slot.rowColor === card.color || isGoldCard
+      );
+      const matchingRowColorMoves = flow(matchesRowColor, getIndexes);
+      return {
+        player: matchingRowColorMoves(playerBoard.cardSlots),
+        opponent: [],
+      };
+    },
+  },
+
+  {
+    name: "Fog",
+    points: 0,
+    isHero: true,
+    validMoves: getEffectCardMoves,
+  },
+  {
+    name: "Jester",
+    points: 0,
+    isHero: true,
+    validMoves: getEffectCardMoves,
+  },
+];
