@@ -4,12 +4,15 @@ import { Ctx } from "boardgame.io";
 import { GameState, Player } from "../models";
 import {
   getPlayerState,
-  getCardOnHand,
+  getCardFromHand,
   addCardToBoard,
   removeCardFromHand,
+  removeCardFromGraveyard,
   setPlayerPassed,
   getOpponent,
   getCurrentPlayer,
+  addCardToHand,
+  getCardFromGraveyard,
 } from "./construct";
 import { getCardDef } from "./cards";
 
@@ -22,7 +25,7 @@ function playCard(
 ) {
   const player = getCurrentPlayer(ctx);
   console.log(player, cardId, boardCell);
-  const card = getCardOnHand(G, player, cardId);
+  const card = getCardFromHand(G, player, cardId);
   if (!card) {
     return INVALID_MOVE;
   }
@@ -51,13 +54,37 @@ function playCard(
     removeCardFromHand(player, cardId),
     addCardToBoard(boardPlayer, card, boardCell),
     setPlayerPassed(player, false),
-    (G) => (cardDef.onPlace ? cardDef.onPlace(G, ctx) : G)
+    (G) =>
+      cardDef.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G
   )(G);
 }
 
 function pass(G: GameState, ctx: Ctx): GameState {
   const player = getCurrentPlayer(ctx);
+  ctx.events?.endTurn();
   return setPlayerPassed(player, true)(G);
 }
+function endTurn(G: GameState, ctx: Ctx): GameState {
+  ctx.events?.endTurn();
+  return G;
+}
+function selectGraveyardCard(
+  G: GameState,
+  ctx: Ctx,
+  cardId: string,
+  fromPlayerId: Player
+): GameState {
+  const currentPlayerId = getCurrentPlayer(ctx);
+  const card = getCardFromGraveyard(G, fromPlayerId, cardId);
+  if (!card) {
+    console.error("Selected card does not exists");
+    return G;
+  }
+  ctx.events?.endTurn(); // Only if maxMoves - 1
+  return fp.flow(
+    addCardToHand(ctx, currentPlayerId, card),
+    removeCardFromGraveyard(fromPlayerId, cardId)
+  )(G);
+}
 
-export { playCard, pass };
+export { endTurn, playCard, pass, selectGraveyardCard };

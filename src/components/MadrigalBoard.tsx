@@ -2,14 +2,23 @@ import * as React from "react";
 import { Ctx } from "boardgame.io";
 import { GameState, Card, Board, Player, CardSlot } from "../models";
 import { range } from "lodash";
-import { getCurrentPlayer } from "../game/construct";
+import {
+  getCurrentPlayer,
+  getOpponent,
+  getPlayerState,
+} from "../game/construct";
+import _ from "lodash";
+import { selectGraveyardCard } from "../game/moves";
+import Modal from "react-modal";
 
 interface Props {
   moves: any;
   events: any;
-  isActive: boolean;
   G: GameState;
+  playerID: string | null;
   ctx: Ctx;
+  isMultiplayer: boolean;
+  isActive: boolean;
 }
 
 const cardStyle: React.CSSProperties = {
@@ -46,6 +55,7 @@ const CardComp = ({ card }: { card: Card }) => (
       ...cardStyle,
       borderColor: card.color,
       backgroundImage: `url(${card.imageUrl})`,
+      transform: card.color === "neutral" ? "rotate(90deg)" : "none",
     }}
   >
     <span>{card.name}</span>
@@ -79,7 +89,7 @@ const PlayerHandCardComp = ({
   };
   return (
     <div
-      className={player === "p0" ? "Card-Hand-Top" : "Card-Hand-Bottom"}
+      className={"Card-Hand-Bottom"}
       style={style}
       onClick={() => !hidden && onSelect(card)}
     >
@@ -96,9 +106,9 @@ const PlayerHandCardComp = ({
 function PlayerHand(props: {
   player: Player;
   hand: Card[];
-  hidden: boolean;
-  onSelect: (card: Card) => void;
-  activeCardId: string | null;
+  hidden?: boolean;
+  onSelect?: (card: Card) => void;
+  activeCardId?: string | null;
 }) {
   return (
     <div style={{ margin: "auto", display: "flex", justifyContent: "center" }}>
@@ -106,8 +116,8 @@ function PlayerHand(props: {
         <PlayerHandCardComp
           key={card.id}
           card={card}
-          hidden={props.hidden}
-          onSelect={props.onSelect}
+          hidden={Boolean(props.hidden)}
+          onSelect={props.onSelect || (() => {})}
           selected={card.id === props.activeCardId}
           player={props.player}
         />
@@ -132,10 +142,12 @@ function CardSlotComp({
   cardSlot: CardSlot;
   onClick: (cardSlot: CardSlot) => void;
 }) {
+  const isNeutral = cardSlot.color === "neutral";
   const style = {
     ...cardSlotStyle,
     borderColor: cardSlot.color,
     backgroundColor: "rgb(145,145,145, 0.5)",
+    // transform: isNeutral ? "rotate(90deg)" : "none",
   };
   return (
     <td style={style} onClick={() => onClick(cardSlot)}>
@@ -145,14 +157,17 @@ function CardSlotComp({
 }
 
 function PlayerBoard(props: {
-  player: Player;
+  isOpponent: boolean;
   board: Board;
   onClickSlot: (cardSlot: CardSlot) => void;
 }) {
   const rows = range(props.board.rows);
   const rowSlots = rows.map((row) => {
     const startIndex = row * props.board.cols;
-    const slots = props.board.cardSlots.slice(
+    const orderedCardSlots = props.isOpponent
+      ? props.board.cardSlots.slice().reverse()
+      : props.board.cardSlots;
+    const slots = orderedCardSlots.slice(
       startIndex,
       startIndex + props.board.cols
     );
@@ -168,7 +183,10 @@ function PlayerBoard(props: {
     <tr key={i}>{cardSlots}</tr>
   ));
   return (
-    <table id={`board-${props.player}`} style={{ margin: "auto" }}>
+    <table
+      id={`board-${props.isOpponent ? "opponent" : "player"}`}
+      style={{ margin: "auto" }}
+    >
       <tbody>{playerBoard}</tbody>
     </table>
   );
@@ -191,35 +209,56 @@ function Deck({ deck }: { deck: Card[] }) {
   );
 }
 
-function MadrigalBoard({ G, ctx, moves }: Props) {
-  const p0 = G.players.p0;
-  const p1 = G.players.p1;
-  const currentPlayer = getCurrentPlayer(ctx);
+function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
+  const currentPlayerId = getCurrentPlayer(ctx);
+  const playerId = playerID as Player;
+  const player = getPlayerState(G, playerId);
+  const opponentPlayerId = getOpponent(playerId);
+  const opponent = getPlayerState(G, opponentPlayerId);
   const [activeCardId, setActiveCardId] = React.useState<string | null>(null);
   const selectCard = (card: Card) => {
-    if (card.id === activeCardId) {
-      setActiveCardId(null);
-    } else if (card.id) {
-      setActiveCardId(card.id);
+    if (currentPlayerId === playerId) {
+      if (card.id === activeCardId) {
+        setActiveCardId(null);
+      } else if (card.id) {
+        setActiveCardId(card.id);
+      }
     }
   };
   const clickCardSlot = (cardSlot: CardSlot) => {
-    console.log(cardSlot.index, cardSlot?.card);
     if (activeCardId) {
-      console.log("playCard", activeCardId, cardSlot.index);
       try {
         const result = moves.playCard(
           activeCardId,
           cardSlot.index,
           cardSlot.player
         );
-        console.log("result", result);
       } catch (e) {
         console.log("Error in playCard");
         console.error(e);
       }
       setActiveCardId(null);
     }
+  };
+  const [modalIsOpen, setIsOpen] = React.useState(false);
+  const playerIsInStage = (player: Player, stage: string) =>
+    ctx.activePlayers &&
+    ctx.activePlayers[player] &&
+    ctx.activePlayers[player].startsWith(stage);
+  React.useEffect(() => {
+    const openGraveyard = playerIsInStage(playerId, "graveyard");
+    setIsOpen(Boolean(openGraveyard));
+  }, [ctx.activePlayers, playerId]);
+  const afterOpenModal = () => {}; // Visual effect?
+  const customStyles = {
+    content: {
+      top: "50%",
+      left: "50%",
+      right: "auto",
+      bottom: "auto",
+      marginRight: "-50%",
+      transform: "translate(-50%, -50%)",
+    },
   };
 
   return (
@@ -233,6 +272,38 @@ function MadrigalBoard({ G, ctx, moves }: Props) {
         backgroundSize: "cover",
       }}
     >
+      <Modal
+        isOpen={modalIsOpen}
+        onAfterOpen={afterOpenModal}
+        onRequestClose={() => setIsOpen(false)}
+        style={customStyles}
+        contentLabel="Graveyard"
+      >
+        <div style={{ margin: "25% auto", width: "80%" }}>
+          {playerIsInStage(playerId, "graveyardBoth") && (
+            <>
+              <p>Opponent graveyard</p>
+              <PlayerHand
+                player={opponentPlayerId}
+                hand={G.players[opponentPlayerId].graveyard}
+                onSelect={(card) =>
+                  moves.selectGraveyardCard(card.id || "", opponentPlayerId)
+                }
+                hidden={false}
+              />
+            </>
+          )}
+          <p>Your graveyard</p>
+          <PlayerHand
+            player={playerId}
+            hand={G.players[playerId].graveyard}
+            onSelect={(card) =>
+              moves.selectGraveyardCard(card.id || "", playerId)
+            }
+            hidden={false}
+          />
+        </div>
+      </Modal>
       <div style={{ display: "flex", justifyContent: "center" }}>
         <div
           id="left-col"
@@ -243,29 +314,23 @@ function MadrigalBoard({ G, ctx, moves }: Props) {
           }}
         >
           <div>
-            <h2>Games {p0.games}</h2>
-            <h2>Points {p0.points}</h2>
-            {p0.passed && <h2>Passed</h2>}
+            <h2>Games {opponent.games}</h2>
+            <h2>Points {opponent.points}</h2>
+            {opponent.passed && <h2>Passed</h2>}
           </div>
           <Deck deck={G.deck} />
           <div>
-            {p1.passed && <h2>Passed</h2>}
-            <h2>Points {p1.points}</h2>
-            <h2>Games {p1.games}</h2>
+            {player.passed && <h2>Passed</h2>}
+            <h2>Points {player.points}</h2>
+            <h2>Games {player.games}</h2>
           </div>
         </div>
         <div id="mid-col">
-          <PlayerHand
-            player="p0"
-            hand={p0.hand}
-            hidden={currentPlayer === "p1"}
-            onSelect={selectCard}
-            activeCardId={activeCardId}
-          />
+          <PlayerHand player={opponentPlayerId} hand={opponent.hand} hidden />
           <div style={{ height: 10 }}></div>
           <PlayerBoard
-            player="p0"
-            board={p0.board}
+            isOpponent={true}
+            board={opponent.board}
             onClickSlot={clickCardSlot}
           />
           <div style={{ height: 40 }}>
@@ -274,15 +339,14 @@ function MadrigalBoard({ G, ctx, moves }: Props) {
             )}
           </div>
           <PlayerBoard
-            player="p1"
-            board={p1.board}
+            isOpponent={false}
+            board={player.board}
             onClickSlot={clickCardSlot}
           />
           <div style={{ height: 10 }}></div>
           <PlayerHand
-            player="p1"
-            hand={p1.hand}
-            hidden={currentPlayer === "p0"}
+            player={playerId}
+            hand={player.hand}
             onSelect={selectCard}
             activeCardId={activeCardId}
           />
@@ -295,7 +359,7 @@ function MadrigalBoard({ G, ctx, moves }: Props) {
             justifyContent: "space-between",
           }}
         >
-          <Graveyard graveyard={p0.graveyard} />
+          <Graveyard graveyard={opponent.graveyard} />
           {/* <ScoreBoard p0={p0} p1={p1} /> */}
           <button
             onClick={() => moves.pass()}
@@ -303,7 +367,7 @@ function MadrigalBoard({ G, ctx, moves }: Props) {
           >
             Pass
           </button>
-          <Graveyard graveyard={p1.graveyard} />
+          <Graveyard graveyard={player.graveyard} />
         </div>
       </div>
     </div>

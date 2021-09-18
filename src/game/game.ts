@@ -10,14 +10,17 @@ import {
   setPlayerPassed,
   addBuffs,
 } from "./construct";
-import { playCard, pass } from "./moves";
+import { playCard, pass, selectGraveyardCard } from "./moves";
 import fp from "lodash/fp";
 import _ from "lodash";
+
+const P1: Player = "1";
+const P0: Player = "0";
 
 function setup(ctx: Ctx): GameState {
   const nCols = 7;
 
-  const rowColors: CellColor[] = ["red", "blue", "green"];
+  const rowColors: CellColor[] = ["green", "blue", "red"];
   const emptyPlayerState = (player: Player): PlayerState => {
     function makeEmptyCardSlotRow(color: CellColor, row: number): CardSlot[] {
       const rowStartIndex = row * nCols;
@@ -49,11 +52,11 @@ function setup(ctx: Ctx): GameState {
         },
       ];
     }
-    const orderedRowColors = player === "p0" ? rowColors : _.reverse(rowColors);
+    // const orderedRowColors = rowColors; //player === P0 ? rowColors : _.reverse(rowColors);
     return {
       board: {
         cardSlots: _.flatMap<CellColor, CardSlot>(
-          orderedRowColors,
+          rowColors,
           makeEmptyCardSlotRow
         ),
         cols: nCols,
@@ -68,8 +71,8 @@ function setup(ctx: Ctx): GameState {
   };
   const gameState: GameState = {
     players: {
-      p0: emptyPlayerState("p0"),
-      p1: emptyPlayerState("p1"),
+      0: emptyPlayerState(P0),
+      1: emptyPlayerState(P1),
     },
     deck: makeShuffledDeck(ctx),
   };
@@ -78,48 +81,59 @@ function setup(ctx: Ctx): GameState {
     return _.times(10).map(() => drawCard(ctx, player));
   };
   const addStartingCards = fp.flow([
-    ...drawStartingCards("p0"),
-    ...drawStartingCards("p1"),
+    ...drawStartingCards(P0),
+    ...drawStartingCards(P1),
   ]);
 
   return addStartingCards(gameState);
 }
 
 function assignGameWin(G: GameState) {
-  const p0 = getPlayerState(G, "p0");
-  const p1 = getPlayerState(G, "p1");
+  const p0 = getPlayerState(G, P0);
+  const p1 = getPlayerState(G, P1);
   // TODO handle tie. Last card played wins
-  const winningPlayer: Player = p0.points > p1.points ? "p0" : "p1";
+  const winningPlayer: Player = p0.points > p1.points ? P0 : P1;
   return fp.flow(
-    setPlayerPassed("p0", false),
-    setPlayerPassed("p1", false),
+    setPlayerPassed(P0, false),
+    setPlayerPassed(P1, false),
     incrementGame(winningPlayer)
   )(G);
 }
 
 function bothPassed(G: GameState) {
-  const p0 = getPlayerState(G, "p0");
-  const p1 = getPlayerState(G, "p1");
+  const p0 = getPlayerState(G, P0);
+  const p1 = getPlayerState(G, P1);
   return p0.passed && p1.passed;
 }
 
 function resetGame(G: GameState) {
-  return fp.flow(boardToGraveyard("p0"), boardToGraveyard("p1"))(G);
+  return fp.flow(boardToGraveyard(P0), boardToGraveyard(P1))(G);
 }
 
 const Madrigal: Game<GameState> = {
   setup,
   turn: {
-    moveLimit: 1,
+    minMoves: 1,
     onBegin: (G, ctx) => {
-      // const player = 'p' + ctx.currentPlayer as Player
       return fp.flow(
-        // drawCard(ctx, player),
-        addBuffs("p0"),
-        addBuffs("p1"),
-        countPlayerPoints("p0"),
-        countPlayerPoints("p1")
+        addBuffs(P0),
+        addBuffs(P1),
+        countPlayerPoints(P0),
+        countPlayerPoints(P1)
       )(G);
+    },
+    endIf: (G, ctx) => {
+      console.log("activePlayers", ctx.activePlayers);
+      console.log("numMoves", ctx.numMoves);
+      // return !ctx.activePlayers; // No stage
+    },
+    stages: {
+      graveyardOwn: {
+        moves: { selectGraveyardCard },
+      },
+      graveyardBoth: {
+        moves: { selectGraveyardCard },
+      },
     },
   },
   moves: {
@@ -127,7 +141,6 @@ const Madrigal: Game<GameState> = {
     pass,
   },
   phases: {
-    // TODO card exchange stage
     game1: {
       start: true,
       endIf: bothPassed,
@@ -149,10 +162,10 @@ const Madrigal: Game<GameState> = {
   endIf: (G, ctx) => {
     // TODO count gem. 2 wins
     const playerWon = (player: Player) => getPlayerState(G, player).games === 2;
-    if (playerWon("p0")) {
+    if (playerWon(P0)) {
       return "Player 1 won!";
     }
-    if (playerWon("p1")) {
+    if (playerWon(P1)) {
       return "Player 2 won!";
     }
   },

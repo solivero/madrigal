@@ -16,7 +16,7 @@ import { Ctx } from "boardgame.io";
 type GameStateProducer = (G: GameState) => GameState;
 
 function getCurrentPlayer(ctx: Ctx) {
-  return ("p" + ctx.currentPlayer) as Player;
+  return ctx.currentPlayer as Player;
 }
 
 function makeShuffledDeck(ctx: Ctx): Card[] {
@@ -36,8 +36,12 @@ function getPlayerState(G: GameState, player: Player) {
   return G.players[player];
 }
 
-function getCardOnHand(G: GameState, player: Player, cardId: string) {
+function getCardFromHand(G: GameState, player: Player, cardId: string) {
   return G.players[player].hand.find((card) => card.id === cardId);
+}
+
+function getCardFromGraveyard(G: GameState, player: Player, cardId: string) {
+  return G.players[player].graveyard.find((card) => card.id === cardId);
 }
 
 function updatePlayer(
@@ -136,26 +140,26 @@ function getColumnBuff(board: Board, slot: CardSlot): number {
 }
 
 function getSmithBuff(board: Board, slot: CardSlot): number {
-  if (slot?.card?.basePoints === 7) {
+  if (slot?.card?.name === "Smith") {
     return 0;
   }
   const rowIdx = Math.floor(slot.index / board.cols);
   const row = getRow(board, rowIdx);
-  const smith = row.find(
-    (cardSlot) => cardSlot?.card && cardSlot.card.basePoints === 5
-  );
-  if (smith) {
-    return 1;
+  const smiths = row.filter((slot) => slot?.card?.name === "Smith");
+  // Priests don't need weapons!
+  if (slot.card?.name !== "Priest") {
+    return smiths.length;
   }
   return 0;
 }
 
 function getFarmerBuff(board: Board, slot: CardSlot): number {
-  const farmer = board.cardSlots.find(
-    (cardSlot) => cardSlot?.card && cardSlot.card.basePoints === 4
+  const farmers = board.cardSlots.filter(
+    (cardSlot) => cardSlot?.card?.name === "Farmer"
   );
-  if (farmer && slot?.card?.isHero) {
-    return 1;
+  const buffValue = farmers.length * farmers.length;
+  if (slot?.card?.isHero) {
+    return buffValue;
   }
   return 0;
 }
@@ -210,6 +214,14 @@ function removeCardFromHand(player: Player, cardId: string): GameStateProducer {
     hand: playerState.hand.filter((card) => card.id !== cardId),
   }));
 }
+function removeCardFromGraveyard(
+  player: Player,
+  cardId: string
+): GameStateProducer {
+  return updatePlayer(player, (playerState) => ({
+    graveyard: playerState.graveyard.filter((card) => card.id !== cardId),
+  }));
+}
 
 function drawCard(ctx: Ctx, player: Player): GameStateProducer {
   return (G: GameState) => {
@@ -255,16 +267,17 @@ function boardToGraveyard(player: Player): GameStateProducer {
 }
 
 function getOpponent(player: Player): Player {
-  return player === "p0" ? "p1" : "p0";
+  return player === "0" ? "1" : "0";
 }
 
 export {
   drawCard,
   removeCardFromHand,
+  removeCardFromGraveyard,
   addCardToBoard,
   addCardToHand,
   getPlayerState,
-  getCardOnHand,
+  getCardFromHand,
   countPlayerPoints,
   makeShuffledDeck,
   setPlayerPassed,
@@ -273,4 +286,5 @@ export {
   addBuffs,
   getOpponent,
   getCurrentPlayer,
+  getCardFromGraveyard,
 };

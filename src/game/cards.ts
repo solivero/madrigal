@@ -1,7 +1,20 @@
 import _ from "lodash";
 import fp, { flow } from "lodash/fp";
-import { Board, Card, CardColor, CardDefinition, CardSlot } from "../models";
-import { drawCard, getCurrentPlayer, getPlayerState } from "./construct";
+import {
+  Board,
+  Card,
+  CardColor,
+  CardDefinition,
+  CardSlot,
+  Player,
+} from "../models";
+import {
+  drawCard,
+  getCurrentPlayer,
+  getOpponent,
+  getPlayerState,
+} from "./construct";
+import { endTurn } from "./moves";
 
 const getImageUrl = (color: CardColor, name: string) =>
   `card_images/${name}-${color}.jpg`;
@@ -64,13 +77,31 @@ const matchingColorPlayerBoardMoves = (card: Card, playerBoard: Board) => {
 export const cardDefinitions: CardDefinition[] = [
   {
     name: "Spy",
-    points: 2,
+    points: 1,
     isHero: false,
     validMoves: (card, playerBoard, opponentBoard) => {
       return {
         player: matchingColorMoves(card, playerBoard),
         opponent: matchingColorMoves(card, opponentBoard),
       };
+    },
+    onPlace: (G, ctx, _boardCell: number, boardPlayer: Player) => {
+      const playerId = getCurrentPlayer(ctx);
+      const player = getPlayerState(G, playerId);
+      const opponentId = getOpponent(playerId);
+      const opponent = getPlayerState(G, opponentId);
+      const graveyardsHaveCards =
+        opponent.graveyard.length || player.graveyard.length;
+      const isOpponentBoard = boardPlayer === opponentId;
+      if (isOpponentBoard && graveyardsHaveCards) {
+        ctx.events?.setActivePlayers({
+          currentPlayer: { stage: "graveyardBoth", moveLimit: 1 },
+        });
+      } else {
+        console.log("Own board or empty graveyards! End turn");
+        ctx.events?.endTurn();
+      }
+      return G;
     },
   },
   {
@@ -83,6 +114,20 @@ export const cardDefinitions: CardDefinition[] = [
         opponent: matchingColorMoves(card, opponentBoard),
       };
     },
+    onPlace: (G, ctx, _boardCell, boardPlayer) => {
+      const playerId = getCurrentPlayer(ctx);
+      const { graveyard } = getPlayerState(G, playerId);
+      const isOpponentBoard = boardPlayer !== playerId;
+      if (isOpponentBoard && graveyard.length) {
+        ctx.events?.setActivePlayers({
+          currentPlayer: { stage: "graveyardOwn", moveLimit: 2 },
+        });
+      } else {
+        console.log("Own board or empty graveyard! End turn");
+        ctx.events?.endTurn();
+      }
+      return G;
+    },
   },
   {
     name: "Fisherman",
@@ -90,6 +135,7 @@ export const cardDefinitions: CardDefinition[] = [
     isHero: false,
     onPlace: (G, ctx) => {
       const player = getCurrentPlayer(ctx);
+      ctx.events?.endTurn();
       return drawCard(ctx, player)(G);
     },
     validMoves: matchingColorPlayerBoardMoves,
@@ -100,6 +146,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 4,
     isHero: false,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -107,6 +154,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 5,
     isHero: false,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -119,6 +167,7 @@ export const cardDefinitions: CardDefinition[] = [
         opponent: matchingColorMoves(card, opponentBoard),
       };
     },
+    onPlace: endTurn,
   },
 
   {
@@ -131,9 +180,14 @@ export const cardDefinitions: CardDefinition[] = [
       const { graveyard } = getPlayerState(G, player);
       if (graveyard.length === 0) {
         console.log("Drew card from deck because of empty graveyard");
+        ctx.events?.endTurn();
         return drawCard(ctx, player)(G);
       }
       console.log("Should choose from graveyard");
+      ctx.events?.setActivePlayers({
+        currentPlayer: "graveyardOwn",
+        maxMoves: 1,
+      });
       return G;
     },
   },
@@ -143,6 +197,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 8,
     isHero: false,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -150,6 +205,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 9,
     isHero: false,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -157,6 +213,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 10,
     isHero: true,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -164,6 +221,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 11,
     isHero: true,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -171,6 +229,7 @@ export const cardDefinitions: CardDefinition[] = [
     points: 12,
     isHero: true,
     validMoves: matchingColorPlayerBoardMoves,
+    onPlace: endTurn,
   },
 
   {
@@ -188,6 +247,7 @@ export const cardDefinitions: CardDefinition[] = [
         opponent: [],
       };
     },
+    onPlace: endTurn,
   },
 
   {
@@ -195,11 +255,13 @@ export const cardDefinitions: CardDefinition[] = [
     points: 0,
     isHero: true,
     validMoves: getEffectCardMoves,
+    onPlace: endTurn,
   },
   {
     name: "Jester",
     points: 0,
     isHero: true,
     validMoves: getEffectCardMoves,
+    onPlace: endTurn,
   },
 ];

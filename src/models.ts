@@ -1,7 +1,23 @@
 import { Ctx } from "boardgame.io";
 export type CardColor = "green" | "blue" | "red" | "gold";
 export type CellColor = CardColor | "neutral";
-export type Player = "p0" | "p1";
+export type Player = "0" | "1";
+export type CardName =
+  | "Spy"
+  | "Thief"
+  | "Fisherman"
+  | "Farmer"
+  | "Smith"
+  | "Merchant"
+  | "Priest"
+  | "Warrior"
+  | "Field marshal"
+  | "Treasurer"
+  | "Queen"
+  | "King"
+  | "Fog"
+  | "Jester"
+  | "Standard";
 
 export type Card = Pick<CardDefinition, "name" | "points" | "isHero"> & {
   basePoints: number;
@@ -12,10 +28,15 @@ export type Card = Pick<CardDefinition, "name" | "points" | "isHero"> & {
 
 type Effect = (G: GameState, ctx: Ctx) => GameState;
 export interface CardDefinition {
-  name: string;
+  name: CardName;
   points: number;
   isHero: boolean;
-  onPlace?: Effect;
+  onPlace?: (
+    G: GameState,
+    ctx: Ctx,
+    boardCell: number,
+    boardPlayer: Player
+  ) => GameState;
   validMoves: (
     card: Card,
     playerBoard: Board,
@@ -50,8 +71,8 @@ export interface PlayerState {
 
 export interface GameState {
   players: {
-    p0: PlayerState;
-    p1: PlayerState;
+    0: PlayerState;
+    1: PlayerState;
   };
   deck: Card[];
 }
