@@ -19,13 +19,16 @@
     "react-dom": "^17.0.1",
     "react-modal": "^3.14.3",
     "react-scripts": "4.0.3",
+    "serve": "^12.0.1",
     "typescript": "^4.1.2",
     "web-vitals": "^1.0.1"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start-dev": "react-scripts start",
     "build": "react-scripts build",
+    "gcp-build": "react-scripts build",
     "test": "react-scripts test",
+    "start": "serve -p $PORT -C ./build",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
