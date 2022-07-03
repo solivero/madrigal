@@ -1,7 +1,7 @@
 import { INVALID_MOVE } from "boardgame.io/core";
 import fp from "lodash/fp";
 import { Ctx } from "boardgame.io";
-import { GameState, Player } from "../models";
+import { Card, GameState, Player } from "../models";
 import {
   getPlayerState,
   getCardFromHand,
@@ -13,10 +13,51 @@ import {
   getCurrentPlayer,
   addCardToHand,
   getCardFromGraveyard,
+  getCardFromBoard,
+  removeCardFromBoard,
 } from "./construct";
 import { getCardDef } from "./cards";
 
-function playCard(
+function isValidMove(
+  G: GameState,
+  ctx: Ctx,
+  card: Card | null,
+  boardCell: number,
+  boardPlayer: Player
+) {
+  if (!card) {
+    console.log("Not a card");
+    return false;
+  }
+  const board = getPlayerState(G, boardPlayer).board;
+  if (board.cardSlots[boardCell].card) {
+    console.log("Occupied");
+    return false;
+  }
+  const cardDef = getCardDef(card.name);
+  if (!cardDef) {
+    console.error("No definition for card", card);
+    return false;
+  }
+  const player = getCurrentPlayer(ctx);
+  const playerBoard = getPlayerState(G, player).board;
+  const opponent = getOpponent(player);
+  const opponentBoard = getPlayerState(G, opponent).board;
+
+  const validMoves = cardDef?.validMoves(card, playerBoard, opponentBoard);
+  console.log(validMoves);
+  if (boardPlayer === player && !validMoves?.player.includes(boardCell)) {
+    console.log("Trying to play on my side");
+    return false;
+  }
+  if (boardPlayer === opponent && !validMoves?.opponent.includes(boardCell)) {
+    console.log("Trying to play on opponent side");
+    return false;
+  }
+  return true;
+}
+
+function playCardFromHand(
   G: GameState,
   ctx: Ctx,
   cardId: string,
@@ -24,38 +65,40 @@ function playCard(
   boardPlayer: Player
 ) {
   const player = getCurrentPlayer(ctx);
-  console.log(player, cardId, boardCell);
   const card = getCardFromHand(G, player, cardId);
-  if (!card) {
+  console.log(player, cardId, boardCell);
+  if (!isValidMove(G, ctx, card, boardCell, boardPlayer)) {
+    console.log("INVALID_MOVE");
     return INVALID_MOVE;
   }
-  const board = getPlayerState(G, boardPlayer).board;
-  if (board.cardSlots[boardCell].card) {
-    console.log("Occupied");
-    return INVALID_MOVE;
-  }
-  const playerBoard = getPlayerState(G, player).board;
-  const opponent = getOpponent(player);
-  const opponentBoard = getPlayerState(G, opponent).board;
-  const cardDef = getCardDef(card.name);
-  if (!cardDef) {
-    console.error("No definition for card", card);
-    return INVALID_MOVE;
-  }
-  const validMoves = cardDef?.validMoves(card, playerBoard, opponentBoard);
-  console.log(validMoves);
-  if (boardPlayer === player && !validMoves?.player.includes(boardCell)) {
-    return INVALID_MOVE;
-  }
-  if (boardPlayer === opponent && !validMoves?.opponent.includes(boardCell)) {
+  const cardDef = getCardDef((card as Card).name);
+  return fp.flow(
+    removeCardFromHand(player, cardId),
+    addCardToBoard(boardPlayer, card as Card, boardCell),
+    setPlayerPassed(player, false),
+    (G) =>
+      cardDef?.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G
+  )(G);
+}
+
+function playCardFromBoard(
+  G: GameState,
+  ctx: Ctx,
+  cardId: string,
+  boardCell: number,
+  toBoardPlayer: Player,
+  fromBoardPlayer: Player
+) {
+  const player = getCurrentPlayer(ctx);
+  const card = getCardFromBoard(G, fromBoardPlayer, cardId);
+  console.log(player, cardId, boardCell);
+  if (!isValidMove(G, ctx, card, boardCell, toBoardPlayer)) {
+    console.log("INVALID_MOVE");
     return INVALID_MOVE;
   }
   return fp.flow(
-    removeCardFromHand(player, cardId),
-    addCardToBoard(boardPlayer, card, boardCell),
-    setPlayerPassed(player, false),
-    (G) =>
-      cardDef.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G
+    removeCardFromBoard(fromBoardPlayer, cardId),
+    addCardToBoard(toBoardPlayer, card as Card, boardCell)
   )(G);
 }
 
@@ -87,4 +130,26 @@ function selectGraveyardCard(
   )(G);
 }
 
-export { endTurn, playCard, pass, selectGraveyardCard };
+function selectBoardCard(
+  G: GameState,
+  ctx: Ctx,
+  cardId: string,
+  fromPlayerId: Player
+) {
+  const currentPlayerId = getCurrentPlayer(ctx);
+  const card = getCardFromBoard(G, fromPlayerId, cardId);
+  if (!card) {
+    console.error("Selected card does not exists");
+    return INVALID_MOVE;
+  }
+  return G;
+}
+
+export {
+  endTurn,
+  pass,
+  selectGraveyardCard,
+  selectBoardCard,
+  playCardFromBoard,
+  playCardFromHand,
+};

@@ -8,7 +8,6 @@ import {
   getPlayerState,
 } from "../game/construct";
 import _ from "lodash";
-import { selectGraveyardCard } from "../game/moves";
 import Modal from "react-modal";
 
 interface Props {
@@ -49,12 +48,14 @@ const cardBacksideStyle: React.CSSProperties = {
   margin: 20,
 };
 
-const CardComp = ({ card }: { card: Card }) => (
+const CardComp = ({ card, selected }: { card: Card; selected: boolean }) => (
   <div
     style={{
       ...cardStyle,
       borderColor: card.color,
       backgroundImage: `url(${card.imageUrl})`,
+      outlineWidth: selected ? 2 : 0,
+      outlineColor: selected ? "white" : "transparent",
       transform: card.color === "neutral" ? "rotate(90deg)" : "none",
     }}
   >
@@ -108,7 +109,7 @@ function PlayerHand(props: {
   hand: Card[];
   hidden?: boolean;
   onSelect?: (card: Card) => void;
-  activeCardId?: string | null;
+  activeCardId?: string;
 }) {
   return (
     <div style={{ margin: "auto", display: "flex", justifyContent: "center" }}>
@@ -138,9 +139,11 @@ const cardSlotStyle: React.CSSProperties = {
 function CardSlotComp({
   cardSlot,
   onClick,
+  activeCardId,
 }: {
   cardSlot: CardSlot;
   onClick: (cardSlot: CardSlot) => void;
+  activeCardId?: string;
 }) {
   const isNeutral = cardSlot.color === "neutral";
   const style = {
@@ -151,7 +154,12 @@ function CardSlotComp({
   };
   return (
     <td style={style} onClick={() => onClick(cardSlot)}>
-      {cardSlot.card && <CardComp card={cardSlot.card} />}
+      {cardSlot.card && (
+        <CardComp
+          card={cardSlot.card}
+          selected={cardSlot.card?.id === activeCardId}
+        />
+      )}
     </td>
   );
 }
@@ -160,6 +168,7 @@ function PlayerBoard(props: {
   isOpponent: boolean;
   board: Board;
   onClickSlot: (cardSlot: CardSlot) => void;
+  activeCardId?: string;
 }) {
   const rows = range(props.board.rows);
   const rowSlots = rows.map((row) => {
@@ -176,6 +185,7 @@ function PlayerBoard(props: {
         key={cardSlot.index}
         onClick={props.onClickSlot}
         cardSlot={cardSlot}
+        activeCardId={props.activeCardId}
       />
     ));
   });
@@ -215,29 +225,18 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
   const player = getPlayerState(G, playerId);
   const opponentPlayerId = getOpponent(playerId);
   const opponent = getPlayerState(G, opponentPlayerId);
-  const [activeCardId, setActiveCardId] = React.useState<string | null>(null);
-  const selectCard = (card: Card) => {
+  const [activeCardId, setActiveCardId] = React.useState<string>("");
+  const [activeCardPlayer, setActiveCardPlayer] =
+    React.useState<Player>(playerId);
+  const selectCard = (card: Card, player: Player) => {
     if (currentPlayerId === playerId) {
       if (card.id === activeCardId) {
-        setActiveCardId(null);
+        setActiveCardId("");
       } else if (card.id) {
+        console.log("Selected card", card.id);
         setActiveCardId(card.id);
+        setActiveCardPlayer(player);
       }
-    }
-  };
-  const clickCardSlot = (cardSlot: CardSlot) => {
-    if (activeCardId) {
-      try {
-        const result = moves.playCard(
-          activeCardId,
-          cardSlot.index,
-          cardSlot.player
-        );
-      } catch (e) {
-        console.log("Error in playCard");
-        console.error(e);
-      }
-      setActiveCardId(null);
     }
   };
   const [modalIsOpen, setIsOpen] = React.useState(false);
@@ -259,6 +258,30 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
       marginRight: "-50%",
       transform: "translate(-50%, -50%)",
     },
+  };
+  const playActiveCardFromHand = (cardSlot: CardSlot) => {
+    try {
+      moves.playCardFromHand(activeCardId, cardSlot.index, cardSlot.player);
+      setActiveCardId("");
+    } catch (err) {
+      console.log("Err in playActiveCardFromHand");
+      console.error(err);
+    }
+  };
+  const playActiveCardFromBoard = (cardSlot: CardSlot) => {
+    try {
+      moves.playCardFromBoard(
+        activeCardId,
+        cardSlot.index,
+        cardSlot.player,
+        activeCardPlayer
+      );
+      setActiveCardId("");
+      ctx.events?.endTurn(); // No further stages allowed
+    } catch (err) {
+      console.log("Err in playActiveCardFromBoard");
+      console.error(err);
+    }
   };
 
   return (
@@ -331,7 +354,24 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
           <PlayerBoard
             isOpponent={true}
             board={opponent.board}
-            onClickSlot={clickCardSlot}
+            activeCardId={activeCardId}
+            onClickSlot={(cardSlot) => {
+              const inSelectStage = playerIsInStage(
+                currentPlayerId,
+                "selectBoardCard"
+              );
+              if (playerIsInStage(currentPlayerId, "selectBoardCardOpponent")) {
+                if (cardSlot.card) {
+                  selectCard(cardSlot.card, cardSlot.player);
+                  return;
+                }
+              }
+              if (inSelectStage && activeCardId) {
+                playActiveCardFromBoard(cardSlot);
+              } else {
+                playActiveCardFromHand(cardSlot);
+              }
+            }}
           />
           <div style={{ height: 40 }}>
             {ctx.gameover && (
@@ -341,13 +381,40 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
           <PlayerBoard
             isOpponent={false}
             board={player.board}
-            onClickSlot={clickCardSlot}
+            activeCardId={activeCardId}
+            onClickSlot={(cardSlot) => {
+              const inSelectOwnStage = playerIsInStage(
+                currentPlayerId,
+                "selectBoardCardOwn"
+              );
+              const inSelectStage = playerIsInStage(
+                currentPlayerId,
+                "selectBoardCard"
+              );
+              console.log(inSelectStage, inSelectOwnStage);
+              if (inSelectOwnStage) {
+                console.log("Should select own");
+                if (cardSlot.card) {
+                  console.log(
+                    "Attempt select card",
+                    cardSlot.card.name,
+                    cardSlot.card.id
+                  );
+                  return selectCard(cardSlot.card, cardSlot.player);
+                }
+              }
+              if (inSelectStage && activeCardId) {
+                playActiveCardFromBoard(cardSlot);
+              } else {
+                playActiveCardFromHand(cardSlot);
+              }
+            }}
           />
           <div style={{ height: 10 }}></div>
           <PlayerHand
             player={playerId}
             hand={player.hand}
-            onSelect={selectCard}
+            onSelect={(card) => selectCard(card, playerId)}
             activeCardId={activeCardId}
           />
         </div>

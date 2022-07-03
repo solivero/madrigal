@@ -15,6 +15,13 @@ import { Ctx } from "boardgame.io";
 
 type GameStateProducer = (G: GameState) => GameState;
 
+export type CardFetcher = (
+  G: GameState,
+  player: Player,
+  cardId: string
+) => Card | null;
+
+export type CardRemover = (player: Player, cardId: string) => GameStateProducer;
 function getCurrentPlayer(ctx: Ctx) {
   return ctx.currentPlayer as Player;
 }
@@ -32,17 +39,34 @@ function makeShuffledDeck(ctx: Ctx): Card[] {
   return [];
 }
 
-function getPlayerState(G: GameState, player: Player) {
-  return G.players[player];
+const getPlayerState = (G: GameState, player: Player) => G.players[player];
+
+const findByCardId = (cardId: string) =>
+  fp.find((card: Card) => card.id === cardId);
+
+function getCardFromPlayer(
+  G: GameState,
+  playerId: Player,
+  cardId: string,
+  cardPoolFetcher: (playerState: PlayerState) => Card[]
+) {
+  const player = getPlayerState(G, playerId);
+  const cardPool = cardPoolFetcher(player);
+  return findByCardId(cardId)(cardPool) || null;
 }
 
-function getCardFromHand(G: GameState, player: Player, cardId: string) {
-  return G.players[player].hand.find((card) => card.id === cardId);
-}
+const getCardFromHand: CardFetcher = (G, player, cardId) =>
+  getCardFromPlayer(G, player, cardId, (state) => state.hand);
 
-function getCardFromGraveyard(G: GameState, player: Player, cardId: string) {
-  return G.players[player].graveyard.find((card) => card.id === cardId);
-}
+const getCardFromBoard: CardFetcher = (G, player, cardId) => {
+  const cards: (state: PlayerState) => Card[] = (state) =>
+    state.board.cardSlots
+      .filter((slot) => slot.card)
+      .map((slot) => slot.card as Card);
+  return getCardFromPlayer(G, player, cardId, cards);
+};
+const getCardFromGraveyard: CardFetcher = (G, player, cardId) =>
+  getCardFromPlayer(G, player, cardId, (state) => state.graveyard);
 
 function updatePlayer(
   player: Player,
@@ -176,6 +200,26 @@ function countPlayerPoints(player: Player): GameStateProducer {
   }));
 }
 
+function removeCardFromBoard(player: Player, cardId: string) {
+  return updatePlayer(player, ({ board }) => {
+    const cardSlots = board.cardSlots.map((cardSlot) => {
+      if (cardSlot?.card?.id === cardId) {
+        return {
+          ...cardSlot,
+          card: undefined,
+        };
+      }
+      return cardSlot;
+    });
+    return {
+      board: {
+        ...board,
+        cardSlots,
+      },
+    };
+  });
+}
+
 function addCardToBoard(player: Player, card: Card, boardCell: number) {
   // Ridicoulus verbose to update deep structure while avoiding immer error
   return updatePlayer(player, ({ board }) => {
@@ -287,4 +331,6 @@ export {
   getOpponent,
   getCurrentPlayer,
   getCardFromGraveyard,
+  getCardFromBoard,
+  removeCardFromBoard,
 };

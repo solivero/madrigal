@@ -167,7 +167,13 @@ export const cardDefinitions: CardDefinition[] = [
         opponent: matchingColorMoves(card, opponentBoard),
       };
     },
-    onPlace: endTurn,
+    onPlace: (G, ctx) => {
+      ctx.events?.setActivePlayers({
+        currentPlayer: "selectBoardCardOpponent",
+        maxMoves: 1,
+      });
+      return G;
+    },
   },
 
   {
@@ -205,7 +211,13 @@ export const cardDefinitions: CardDefinition[] = [
     points: 9,
     isHero: false,
     validMoves: matchingColorPlayerBoardMoves,
-    onPlace: endTurn,
+    onPlace: (G, ctx) => {
+      ctx.events?.setActivePlayers({
+        currentPlayer: "selectBoardCardOwn",
+        maxMoves: 1,
+      });
+      return G;
+    },
   },
 
   {

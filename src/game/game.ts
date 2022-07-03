@@ -10,7 +10,13 @@ import {
   setPlayerPassed,
   addBuffs,
 } from "./construct";
-import { playCard, pass, selectGraveyardCard } from "./moves";
+import {
+  pass,
+  selectGraveyardCard,
+  selectBoardCard,
+  playCardFromBoard,
+  playCardFromHand,
+} from "./moves";
 import fp from "lodash/fp";
 import _ from "lodash";
 
@@ -110,6 +116,12 @@ function resetGame(G: GameState) {
   return fp.flow(boardToGraveyard(P0), boardToGraveyard(P1))(G);
 }
 
+type Stage =
+  | "graveyardOwn"
+  | "graveyardBoth"
+  | "selectBoardCardOpponent"
+  | "selectBoardCardOwn";
+
 const Madrigal: Game<GameState> = {
   setup,
   turn: {
@@ -122,11 +134,6 @@ const Madrigal: Game<GameState> = {
         countPlayerPoints(P1)
       )(G);
     },
-    endIf: (G, ctx) => {
-      console.log("activePlayers", ctx.activePlayers);
-      console.log("numMoves", ctx.numMoves);
-      // return !ctx.activePlayers; // No stage
-    },
     stages: {
       graveyardOwn: {
         moves: { selectGraveyardCard },
@@ -134,10 +141,16 @@ const Madrigal: Game<GameState> = {
       graveyardBoth: {
         moves: { selectGraveyardCard },
       },
+      selectBoardCardOpponent: {
+        moves: { playCardFromBoard },
+      },
+      selectBoardCardOwn: {
+        moves: { playCardFromBoard },
+      },
     },
   },
   moves: {
-    playCard,
+    playCardFromHand,
     pass,
   },
   phases: {
