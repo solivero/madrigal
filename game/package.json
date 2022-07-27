@@ -1,0 +1,25 @@
+{
+  "name": "@madrigal/core",
+  "version": "0.1.2",
+  "private": false,
+  "dependencies": {
+    "@types/jest": "^26.0.15",
+    "@types/lodash": "^4.14.168",
+    "boardgame.io": "^0.49.0",
+    "lodash": "^4.17.21",
+    "prettier": "^2.3.0",
+    "prettier-eslint": "^12.0.0",
+    "typescript": "^4.1.2"
+  },
+  "main": "dist/game.js",
+  "scripts": {
+    "build": "tsc",
+    "prepare" : "npm run build"
+  },
+  "files": ["dist"],
+  "devDependencies": {
+    "@types/react-modal": "^3.12.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-config-standard": "^16.0.2"
+  }
+}

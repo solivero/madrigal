@@ -1,6 +1,6 @@
 // src/server.js
 const { Server, Origins } = require("boardgame.io/server");
-const { TicTacToe } = require("./src/game/game");
+const { TicTacToe } = require("@madrigal/core");
 
 const server = Server({
   games: [TicTacToe],

@@ -4,11 +4,12 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 const getPlayerId = () =>
-  new URLSearchParams(window.location.search).get("playerID") || undefined;
+  new URLSearchParams(window.location.search).get("playerID") || "0";
 
 ReactDOM.render(
   <React.StrictMode>
-    <App playerID={getPlayerId()} />
+    {/* <App playerID={getPlayerId()} /> */}
+    <App />
   </React.StrictMode>,
   document.getElementById("root")
 );

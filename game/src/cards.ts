@@ -5,9 +5,10 @@ import {
   Card,
   CardColor,
   CardDefinition,
+  CardName,
   CardSlot,
   Player,
-} from "../models";
+} from "./models";
 import {
   drawCard,
   getCurrentPlayer,
@@ -33,8 +34,19 @@ export const makeCardConstructor =
     return card;
   };
 
-export const getCardDef = (name: string) =>
-  _.find(cardDefinitions, (cardDef) => cardDef.name === name);
+export const getCardDef = (name: CardName) => {
+  const def = _.find(cardDefinitions, (cardDef) => cardDef.name === name);
+  if (!def) {
+    throw Error(`No definition for ${name}`);
+  }
+  return def;
+};
+
+export const makeCard = (name: CardName, color: CardColor) => {
+  const def = getCardDef(name);
+  const constructor = makeCardConstructor(def);
+  return constructor(color);
+};
 
 export const slotIsNeutral = (slot: CardSlot) => slot.color === "neutral";
 const cardIsGold = (card: Card) => card.color === "gold";
@@ -167,11 +179,16 @@ export const cardDefinitions: CardDefinition[] = [
         opponent: matchingColorMoves(card, opponentBoard),
       };
     },
-    onPlace: (G, ctx) => {
-      ctx.events?.setActivePlayers({
-        currentPlayer: "selectBoardCardOpponent",
-        maxMoves: 1,
-      });
+    onPlace: (G, ctx, _boardCell, boardPlayer) => {
+      const playerId = getCurrentPlayer(ctx);
+      const opponentId = getOpponent(playerId);
+      const isOpponentBoard = boardPlayer === opponentId;
+      if (isOpponentBoard) {
+        ctx.events?.setActivePlayers({
+          currentPlayer: "selectBoardCardOpponent",
+          maxMoves: 1,
+        });
+      }
       return G;
     },
   },
@@ -212,10 +229,15 @@ export const cardDefinitions: CardDefinition[] = [
     isHero: false,
     validMoves: matchingColorPlayerBoardMoves,
     onPlace: (G, ctx) => {
-      ctx.events?.setActivePlayers({
-        currentPlayer: "selectBoardCardOwn",
-        maxMoves: 1,
-      });
+      const hasAnyCardsOnBoard = G.players[
+        ctx.playerID as Player
+      ].board.cardSlots.some((slot) => slot.card);
+      if (hasAnyCardsOnBoard) {
+        ctx.events?.setActivePlayers({
+          currentPlayer: "selectBoardCardOwn",
+          maxMoves: 1,
+        });
+      }
       return G;
     },
   },
@@ -237,7 +259,7 @@ export const cardDefinitions: CardDefinition[] = [
   },
 
   {
-    name: "Treasurer",
+    name: "King",
     points: 12,
     isHero: true,
     validMoves: matchingColorPlayerBoardMoves,

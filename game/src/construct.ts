@@ -8,7 +8,7 @@ import {
   Player,
   CardSlot,
   CardColor,
-} from "../models";
+} from "./models";
 import { makeCardConstructor, cardDefinitions, slotIsNeutral } from "./cards";
 
 import { Ctx } from "boardgame.io";
@@ -104,18 +104,31 @@ function getSlotByCardName(cardSlots: CardSlot[], name: string) {
 
 function addBuffs(player: Player): GameStateProducer {
   const determinePoints = (
-    card: Card,
+    slot: CardSlot,
     buffPoints: number,
     jester: boolean,
-    fog: boolean
+    fog: boolean,
+    flag: boolean
   ) => {
+    const { card } = slot;
+    if (!card) {
+      return 0;
+    }
+    const isEffectStandard = slotIsNeutral(slot) && card?.name == "Standard";
+    if (isEffectStandard) {
+      return 0;
+    }
     if (jester) {
       return card.basePoints;
     }
     if (fog) {
       return card.isHero ? card.basePoints : 0;
     }
-    return card.basePoints + buffPoints;
+    const buffedPoints = card.basePoints + buffPoints;
+    if (flag) {
+      return card.isHero ? buffedPoints : buffedPoints * 2;
+    }
+    return buffedPoints;
   };
   return updatePlayer(player, ({ board }) => {
     const buffedBoard = board.cardSlots.map((slot) => {
@@ -130,7 +143,14 @@ function addBuffs(player: Player): GameStateProducer {
       // TODO fog applies from other board too!
       const hasFog = !!getSlotByCardName(effectSlots, "Fog");
       const hasJester = !!getSlotByCardName(effectSlots, "Jester");
-      const points = determinePoints(card, buffPoints, hasJester, hasFog);
+      const hasFlag = !!getSlotByCardName(effectSlots, "Standard");
+      const points = determinePoints(
+        slot,
+        buffPoints,
+        hasJester,
+        hasFog,
+        hasFlag
+      );
       const buffedCard = {
         ...card,
         points,
@@ -246,7 +266,7 @@ function addCardToHand(
   player: Player,
   card: Card
 ): GameStateProducer {
-  const id = `${player}-${ctx.random?.Number().toFixed(4)}`;
+  const id = `${player}-${Math.random().toString(36).slice(2)}`;
   const newCard = { ...card, id };
   return updatePlayer(player, (playerState) => ({
     hand: [...playerState.hand, newCard],
@@ -333,4 +353,5 @@ export {
   getCardFromGraveyard,
   getCardFromBoard,
   removeCardFromBoard,
+  getRow,
 };

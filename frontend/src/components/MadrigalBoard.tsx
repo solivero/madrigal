@@ -1,12 +1,13 @@
 import * as React from "react";
 import { Ctx } from "boardgame.io";
-import { GameState, Card, Board, Player, CardSlot } from "../models";
-import { range } from "lodash";
 import {
-  getCurrentPlayer,
-  getOpponent,
-  getPlayerState,
-} from "../game/construct";
+  GameState,
+  Card,
+  Board,
+  Player,
+  CardSlot,
+} from "@madrigal/core/dist/models";
+import { range } from "lodash";
 import _ from "lodash";
 import Modal from "react-modal";
 
@@ -59,7 +60,7 @@ const CardComp = ({ card, selected }: { card: Card; selected: boolean }) => (
       transform: card.color === "neutral" ? "rotate(90deg)" : "none",
     }}
   >
-    <span>{card.name}</span>
+    <span style={{ fontSize: "80%" }}>{card.name}</span>
     <span style={{ color: card.points > card.basePoints ? "gold" : "inherit" }}>
       {card.points}
     </span>
@@ -96,7 +97,7 @@ const PlayerHandCardComp = ({
     >
       {!hidden && (
         <>
-          <span>{card.name}</span>
+          <span style={{ fontSize: "80%" }}>{card.name}</span>
           <span>{card.points}</span>
         </>
       )}
@@ -220,16 +221,16 @@ function Deck({ deck }: { deck: Card[] }) {
 }
 
 function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
-  const currentPlayerId = getCurrentPlayer(ctx);
-  const playerId = playerID as Player;
-  const player = getPlayerState(G, playerId);
-  const opponentPlayerId = getOpponent(playerId);
-  const opponent = getPlayerState(G, opponentPlayerId);
+  const currentPlayerId = ctx.currentPlayer as Player;
+  const activePlayerId = playerID as Player;
+  const player = G.players[activePlayerId];
+  const opponentPlayerId = activePlayerId === "0" ? "1" : "0";
+  const opponent = G.players[opponentPlayerId];
   const [activeCardId, setActiveCardId] = React.useState<string>("");
   const [activeCardPlayer, setActiveCardPlayer] =
-    React.useState<Player>(playerId);
+    React.useState<Player>(activePlayerId);
   const selectCard = (card: Card, player: Player) => {
-    if (currentPlayerId === playerId) {
+    if (currentPlayerId === activePlayerId) {
       if (card.id === activeCardId) {
         setActiveCardId("");
       } else if (card.id) {
@@ -240,14 +241,14 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
     }
   };
   const [modalIsOpen, setIsOpen] = React.useState(false);
-  const playerIsInStage = (player: Player, stage: string) =>
-    ctx.activePlayers &&
-    ctx.activePlayers[player] &&
-    ctx.activePlayers[player].startsWith(stage);
+  const playerIsInStage = (player: Player, stage: string | null) =>
+    ctx.activePlayers && ctx.activePlayers[player] == stage;
   React.useEffect(() => {
-    const openGraveyard = playerIsInStage(playerId, "graveyard");
+    const openGraveyard =
+      playerIsInStage(activePlayerId, "graveyardOwn") ||
+      playerIsInStage(activePlayerId, "graveyardBoth");
     setIsOpen(Boolean(openGraveyard));
-  }, [ctx.activePlayers, playerId]);
+  }, [ctx.activePlayers, activePlayerId]);
   const afterOpenModal = () => {}; // Visual effect?
   const customStyles = {
     content: {
@@ -277,11 +278,28 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
         activeCardPlayer
       );
       setActiveCardId("");
-      ctx.events?.endTurn(); // No further stages allowed
     } catch (err) {
       console.log("Err in playActiveCardFromBoard");
       console.error(err);
     }
+  };
+  const stageHelp: { [stage: string]: string } = {
+    default: "Play a card or pass",
+    selectBoardCardOwn: "Select card on your own board",
+    selectBoardCardOpponent: "Select card on your opponent's board",
+    graveyardOwn: "Select card from your own graveyard",
+    graveyardBoth: "Select card from any player's graveyard",
+  };
+  console.log({ currentPlayerId, opponentPlayerId, activePlayerId });
+  const getHelpText = () => {
+    if (currentPlayerId !== activePlayerId) {
+      return "Wait for other player to play";
+    }
+    const currentStage = ctx.activePlayers && ctx.activePlayers[activePlayerId];
+    return (
+      (currentStage && stageHelp[currentStage]) ||
+      "Unknown state. Please reset game"
+    );
   };
 
   return (
@@ -303,12 +321,12 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
         contentLabel="Graveyard"
       >
         <div style={{ margin: "25% auto", width: "80%" }}>
-          {playerIsInStage(playerId, "graveyardBoth") && (
+          {playerIsInStage(activePlayerId, "graveyardBoth") && (
             <>
               <p>Opponent graveyard</p>
               <PlayerHand
                 player={opponentPlayerId}
-                hand={G.players[opponentPlayerId].graveyard}
+                hand={G.players[opponentPlayerId]?.graveyard}
                 onSelect={(card) =>
                   moves.selectGraveyardCard(card.id || "", opponentPlayerId)
                 }
@@ -318,10 +336,10 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
           )}
           <p>Your graveyard</p>
           <PlayerHand
-            player={playerId}
-            hand={G.players[playerId].graveyard}
+            player={activePlayerId}
+            hand={G.players[activePlayerId]?.graveyard}
             onSelect={(card) =>
-              moves.selectGraveyardCard(card.id || "", playerId)
+              moves.selectGraveyardCard(card.id || "", activePlayerId)
             }
             hidden={false}
           />
@@ -331,6 +349,7 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
         <div
           id="left-col"
           style={{
+            paddingRight: 32,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
@@ -343,6 +362,9 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
           </div>
           <Deck deck={G.deck} />
           <div>
+            <h4 style={{ color: "white", width: 150, overflowWrap: "normal" }}>
+              {getHelpText()}
+            </h4>
             {player.passed && <h2>Passed</h2>}
             <h2>Points {player.points}</h2>
             <h2>Games {player.games}</h2>
@@ -356,17 +378,22 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
             board={opponent.board}
             activeCardId={activeCardId}
             onClickSlot={(cardSlot) => {
-              const inSelectStage = playerIsInStage(
+              const selectOwnBoard = playerIsInStage(
                 currentPlayerId,
-                "selectBoardCard"
+                "selectBoardCardOwn"
               );
-              if (playerIsInStage(currentPlayerId, "selectBoardCardOpponent")) {
+              const selectOpponentBoard = playerIsInStage(
+                currentPlayerId,
+                "selectBoardCardOpponent"
+              );
+
+              if (selectOpponentBoard) {
                 if (cardSlot.card) {
                   selectCard(cardSlot.card, cardSlot.player);
                   return;
                 }
               }
-              if (inSelectStage && activeCardId) {
+              if ((selectOpponentBoard || selectOwnBoard) && activeCardId) {
                 playActiveCardFromBoard(cardSlot);
               } else {
                 playActiveCardFromHand(cardSlot);
@@ -387,11 +414,10 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
                 currentPlayerId,
                 "selectBoardCardOwn"
               );
-              const inSelectStage = playerIsInStage(
+              const inSelectOpponentStage = playerIsInStage(
                 currentPlayerId,
-                "selectBoardCard"
+                "selectBoardCardOpponent"
               );
-              console.log(inSelectStage, inSelectOwnStage);
               if (inSelectOwnStage) {
                 console.log("Should select own");
                 if (cardSlot.card) {
@@ -403,7 +429,7 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
                   return selectCard(cardSlot.card, cardSlot.player);
                 }
               }
-              if (inSelectStage && activeCardId) {
+              if ((inSelectOpponentStage || inSelectOwnStage) && activeCardId) {
                 playActiveCardFromBoard(cardSlot);
               } else {
                 playActiveCardFromHand(cardSlot);
@@ -412,15 +438,20 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
           />
           <div style={{ height: 10 }}></div>
           <PlayerHand
-            player={playerId}
+            player={activePlayerId}
             hand={player.hand}
-            onSelect={(card) => selectCard(card, playerId)}
+            onSelect={(card) => {
+              if (playerIsInStage(activePlayerId, "default")) {
+                selectCard(card, activePlayerId);
+              }
+            }}
             activeCardId={activeCardId}
           />
         </div>
         <div
-          id="left-col"
+          id="right-col"
           style={{
+            paddingLeft: 32,
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",

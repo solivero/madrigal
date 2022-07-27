@@ -1,7 +1,7 @@
 import { INVALID_MOVE } from "boardgame.io/core";
 import fp from "lodash/fp";
 import { Ctx } from "boardgame.io";
-import { Card, GameState, Player } from "../models";
+import { Card, GameState, Player } from "./models";
 import {
   getPlayerState,
   getCardFromHand,
@@ -81,6 +81,7 @@ function playCardFromHand(
   )(G);
 }
 
+// Selected card is assumed to be from valid player board
 function playCardFromBoard(
   G: GameState,
   ctx: Ctx,
@@ -90,15 +91,24 @@ function playCardFromBoard(
   fromBoardPlayer: Player
 ) {
   const player = getCurrentPlayer(ctx);
-  const card = getCardFromBoard(G, fromBoardPlayer, cardId);
+  const card = getCardFromBoard(G, fromBoardPlayer, cardId) as Card;
   console.log(player, cardId, boardCell);
   if (!isValidMove(G, ctx, card, boardCell, toBoardPlayer)) {
     console.log("INVALID_MOVE");
     return INVALID_MOVE;
   }
+  const cardDef = getCardDef(card.name);
   return fp.flow(
     removeCardFromBoard(fromBoardPlayer, cardId),
-    addCardToBoard(toBoardPlayer, card as Card, boardCell)
+    addCardToBoard(toBoardPlayer, card, boardCell),
+    (G) => {
+      // card must switch sides to activate onPlace effect
+      if (cardDef?.onPlace && fromBoardPlayer !== toBoardPlayer) {
+        return cardDef.onPlace(G, ctx, boardCell, toBoardPlayer);
+      } else {
+        return G;
+      }
+    }
   )(G);
 }
 
@@ -123,7 +133,6 @@ function selectGraveyardCard(
     console.error("Selected card does not exists");
     return G;
   }
-  ctx.events?.endTurn(); // Only if maxMoves - 1
   return fp.flow(
     addCardToHand(ctx, currentPlayerId, card),
     removeCardFromGraveyard(fromPlayerId, cardId)

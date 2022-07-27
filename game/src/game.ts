@@ -1,4 +1,4 @@
-import { GameState, PlayerState, CardSlot, CellColor, Player } from "../models";
+import { GameState, PlayerState, CardSlot, CellColor, Player } from "./models";
 import { Ctx, Game } from "boardgame.io";
 import {
   countPlayerPoints,
@@ -23,9 +23,8 @@ import _ from "lodash";
 const P1: Player = "1";
 const P0: Player = "0";
 
+export const nCols = 7;
 function setup(ctx: Ctx): GameState {
-  const nCols = 7;
-
   const rowColors: CellColor[] = ["green", "blue", "red"];
   const emptyPlayerState = (player: Player): PlayerState => {
     function makeEmptyCardSlotRow(color: CellColor, row: number): CardSlot[] {
@@ -124,9 +123,15 @@ type Stage =
 
 const Madrigal: Game<GameState> = {
   setup,
+  minPlayers: 2,
+  maxPlayers: 2,
+  name: "Madrigal",
   turn: {
     minMoves: 1,
     onBegin: (G, ctx) => {
+      ctx.events?.setActivePlayers({
+        currentPlayer: { stage: "default", minMoves: 1 },
+      });
       return fp.flow(
         addBuffs(P0),
         addBuffs(P1),
@@ -134,7 +139,21 @@ const Madrigal: Game<GameState> = {
         countPlayerPoints(P1)
       )(G);
     },
+    onMove: (G, ctx) => {
+      console.log("Move! activePlayers", ctx.activePlayers);
+    },
+    endIf: (G, ctx) => {
+      console.log("END?", !ctx.activePlayers);
+      console.log(ctx.activePlayers);
+      return !ctx.activePlayers;
+    },
     stages: {
+      default: {
+        moves: {
+          playCardFromHand,
+          pass,
+        },
+      },
       graveyardOwn: {
         moves: { selectGraveyardCard },
       },
@@ -149,10 +168,7 @@ const Madrigal: Game<GameState> = {
       },
     },
   },
-  moves: {
-    playCardFromHand,
-    pass,
-  },
+  moves: {},
   phases: {
     game1: {
       start: true,
