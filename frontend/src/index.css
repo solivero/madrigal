@@ -11,3 +11,17 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.hidden {
+  display: none;
+}
+
+.phase {
+  border: 0.5em solid rgb(53, 25, 25);
+  border-radius: 0.5em;
+  margin: auto;
+}
+
+.buttons {
+  float: left;
+}

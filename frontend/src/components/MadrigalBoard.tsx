@@ -10,6 +10,7 @@ import {
 import { range } from "lodash";
 import _ from "lodash";
 import Modal from "react-modal";
+import { BoardProps } from "boardgame.io/dist/types/packages/react";
 
 interface Props {
   moves: any;
@@ -220,7 +221,59 @@ function Deck({ deck }: { deck: Card[] }) {
   );
 }
 
-function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
+function Chat({
+  sendChatMessage,
+  chatMessages,
+}: Pick<BoardProps, "sendChatMessage" | "chatMessages">) {
+  const [newMessage, setMessage] = React.useState("");
+  return (
+    <div
+      style={{
+        backgroundColor: "rgba(0, 0, 0, .5)",
+        width: 200,
+        float: "left",
+        color: "white",
+        display: "",
+      }}
+    >
+      <h2>Chat</h2>
+      {chatMessages.map((message) => (
+        <div key={message.id}>
+          {new Date(message.payload.time).toLocaleTimeString()} {message.sender}
+          : {message.payload.text}
+        </div>
+      ))}
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          sendChatMessage({
+            text: newMessage,
+            time: Date.now(),
+          });
+          setMessage("");
+        }}
+      >
+        <label>
+          Message:
+          <textarea
+            value={newMessage}
+            onChange={(event) => setMessage(event.target.value)}
+          />
+        </label>
+        <input type="submit" value="Send" />
+      </form>
+    </div>
+  );
+}
+
+function MadrigalBoard({
+  G,
+  ctx,
+  moves,
+  playerID,
+  sendChatMessage,
+  chatMessages,
+}: BoardProps) {
   const currentPlayerId = ctx.currentPlayer as Player;
   const activePlayerId = playerID as Player;
   const player = G.players[activePlayerId];
@@ -305,14 +358,15 @@ function MadrigalBoard({ G, ctx, moves, playerID }: Props) {
   return (
     <div
       style={{
-        position: "fixed",
+        // position: "fixed",
         overflow: "auto",
         width: "100%",
-        height: "100%",
+        height: "100vh",
         backgroundImage: 'url("background.jpg")',
         backgroundSize: "cover",
       }}
     >
+      <Chat sendChatMessage={sendChatMessage} chatMessages={chatMessages} />
       <Modal
         isOpen={modalIsOpen}
         onAfterOpen={afterOpenModal}

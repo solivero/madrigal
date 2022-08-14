@@ -6,7 +6,7 @@ import { Madrigal } from "@madrigal/core";
 import { MadrigalBoard } from "./components/MadrigalBoard";
 
 const server =
-  process.env.NODE_ENV === "development"
+  process?.env.NODE_ENV === "development"
     ? "http://localhost:8000"
     : "https://backend-dot-madrigal-online.appspot.com";
 console.log("Using server", server);
