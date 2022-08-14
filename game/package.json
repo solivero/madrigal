@@ -14,9 +14,11 @@
   "main": "dist/game.js",
   "scripts": {
     "build": "tsc",
-    "prepare" : "npm run build"
+    "prepare": "npm run build"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "devDependencies": {
     "@types/react-modal": "^3.12.1",
     "eslint-config-prettier": "^8.3.0",

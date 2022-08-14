@@ -31,7 +31,7 @@
     "test": "react-scripts test",
     "start": "serve -p $PORT -C ./build",
     "eject": "react-scripts eject",
-    "deploy": "npm pack ../game; gcloud app deploy app.yaml"
+    "deploy": "npm pack ../game; npm install ./madrigal-core*.tgz; gcloud app deploy app.yaml; npm link @madrigal/core"
   },
   "eslintConfig": {
     "extends": [

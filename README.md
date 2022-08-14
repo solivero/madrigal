@@ -14,4 +14,4 @@ npm link @madrigal/core
 npm install
 ```
 
-Local tar ball of @madrigal/core will be built and inserted into frontend and server before deploying to App Engine
+Local tar ball of @madrigal/core will be built and inserted into frontend and server before deploying to App Engine using `npm run deploy`
