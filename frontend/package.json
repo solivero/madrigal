@@ -3,7 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@madrigal/core": "file:madrigal-core-0.1.2.tgz",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
@@ -31,7 +30,7 @@
     "test": "react-scripts test",
     "start": "serve -p $PORT -C ./build",
     "eject": "react-scripts eject",
-    "deploy": "npm pack ../game; npm install ./madrigal-core*.tgz; gcloud app deploy app.yaml; npm link @madrigal/core"
+    "deploy": "npm pack ../game; npm install --save ./madrigal-core*.tgz; gcloud app deploy app.yaml; npm link @madrigal/core"
   },
   "eslintConfig": {
     "extends": [

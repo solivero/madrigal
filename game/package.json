@@ -5,7 +5,7 @@
   "dependencies": {
     "@types/jest": "^26.0.15",
     "@types/lodash": "^4.14.168",
-    "boardgame.io": "^0.49.0",
+    "boardgame.io": "^0.49.13",
     "lodash": "^4.17.21",
     "prettier": "^2.3.0",
     "prettier-eslint": "^12.0.0",
