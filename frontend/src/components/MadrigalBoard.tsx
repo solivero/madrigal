@@ -83,12 +83,16 @@ const PlayerHandCardComp = ({
   hidden,
   player,
 }: PlayerHandCardProps) => {
+  const bucket =
+    process.env.GOOGLE_CLOUD_PROJECT || "madrigal-online.appspot.com";
+  const baseImgUrl = "https://storage.googleapis.com";
+  const fullImgUrl = `${baseImgUrl}/${bucket}/${card.imageUrl}`;
   const style = {
     ...cardStyle,
     borderColor: hidden ? "transparent" : card.color,
     outlineWidth: selected ? 2 : 0,
     outlineColor: selected ? "white" : "transparent",
-    backgroundImage: hidden ? "" : `url(${card.imageUrl})`,
+    backgroundImage: hidden ? "" : `url(${fullImgUrl})`,
   };
   return (
     <div
