@@ -29,7 +29,7 @@ export const makeCardConstructor =
       isHero,
       points,
       basePoints: points,
-      imageUrl: getImageUrl(color, name.toLowerCase()),
+      normalizedName: getNormalizedName(name),
     };
     return card;
   };

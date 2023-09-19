@@ -23,7 +23,7 @@ export type Card = Pick<CardDefinition, "name" | "points" | "isHero"> & {
   basePoints: number;
   color: CellColor;
   id?: string;
-  imageUrl: string;
+  normalizedName: string;
 };
 
 type Effect = (G: GameState, ctx: Ctx) => GameState;
@@ -75,4 +75,5 @@ export interface GameState {
     1: PlayerState;
   };
   deck: Card[];
+  sounds: string[];
 }

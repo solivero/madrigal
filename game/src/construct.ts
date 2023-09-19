@@ -261,6 +261,10 @@ function addCardToBoard(player: Player, card: Card, boardCell: number) {
   });
 }
 
+function playSoundEffect(sound: string): GameStateProducer {
+  return fp.update("sounds", (sounds) => [sound, ...sounds])
+}
+
 function addCardToHand(
   ctx: Ctx,
   player: Player,
@@ -354,4 +358,5 @@ export {
   getCardFromBoard,
   removeCardFromBoard,
   getRow,
+  playSoundEffect,
 };

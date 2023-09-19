@@ -11,6 +11,7 @@ import { range } from "lodash";
 import _ from "lodash";
 import Modal from "react-modal";
 import { BoardProps } from "boardgame.io/dist/types/packages/react";
+import { Howl, Howler } from "howler";
 
 interface Props {
   moves: any;
@@ -21,6 +22,15 @@ interface Props {
   isMultiplayer: boolean;
   isActive: boolean;
 }
+function getStorageUrl(path: string) {
+  const bucket =
+    process.env.GOOGLE_CLOUD_PROJECT || "madrigal-online.appspot.com";
+  const baseImgUrl = "https://storage.googleapis.com";
+  return `${baseImgUrl}/${bucket}/${path}`;
+}
+
+const getImageUrl = (color: string, name: string) =>
+  getStorageUrl(`card_images/${name}-${color}.jpg`);
 
 const cardStyle: React.CSSProperties = {
   border: "2px solid #555",
@@ -55,7 +65,7 @@ const CardComp = ({ card, selected }: { card: Card; selected: boolean }) => (
     style={{
       ...cardStyle,
       borderColor: card.color,
-      backgroundImage: `url(${card.imageUrl})`,
+      backgroundImage: `url(${getImageUrl(card.color, card.normalizedName)})`,
       outlineWidth: selected ? 2 : 0,
       outlineColor: selected ? "white" : "transparent",
       transform: card.color === "neutral" ? "rotate(90deg)" : "none",
@@ -277,7 +287,37 @@ function MadrigalBoard({
   playerID,
   sendChatMessage,
   chatMessages,
+  log,
 }: BoardProps) {
+  console.log(log);
+  const lastMove = log
+    .reverse()
+    .find((entry) => entry.action.type === "MAKE_MOVE");
+  const [soundsPlayed, setSoundsPlayed] = React.useState<{
+    [moveHash: string]: boolean;
+  }>({});
+  if (lastMove) {
+    console.log("LAST MOVE", lastMove);
+    const moveArgs = lastMove.action.payload.args as any[];
+    const moveType = lastMove.action.payload.type;
+    if (["playCardFromHand", "playCardFromBoard"].includes(moveType)) {
+      const [cardId, boardSlot, boardPlayer] = moveArgs;
+      const soundId = moveArgs.join("-");
+      if (!soundsPlayed[soundId]) {
+        const cardName =
+          G.players[boardPlayer].board.cardSlots[boardSlot]?.card
+            ?.normalizedName;
+        if (cardName) {
+          console.log("Not played yet", cardName, soundId);
+          const sound = new Howl({
+            src: [getStorageUrl(`sounds/${cardName}.mp3`)],
+          });
+          sound.play();
+          setSoundsPlayed({ ...soundsPlayed, [soundId]: true });
+        }
+      }
+    }
+  }
   const currentPlayerId = ctx.currentPlayer as Player;
   const activePlayerId = playerID as Player;
   const player = G.players[activePlayerId];

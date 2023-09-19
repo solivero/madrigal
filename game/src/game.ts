@@ -80,6 +80,7 @@ function setup(ctx: Ctx): GameState {
       1: emptyPlayerState(P1),
     },
     deck: makeShuffledDeck(ctx),
+    sounds: [],
   };
 
   const drawStartingCards = (player: Player) => {
@@ -139,8 +140,12 @@ const Madrigal: Game<GameState> = {
         countPlayerPoints(P1)
       )(G);
     },
-    onMove: (G, ctx) => {
+    onMove: (G, ctx): GameState => {
       console.log("Move! activePlayers", ctx.activePlayers);
+      return {
+        ...G,
+        sounds: [],
+      }
     },
     endIf: (G, ctx) => {
       console.log("END?", !ctx.activePlayers);

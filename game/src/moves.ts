@@ -15,8 +15,9 @@ import {
   getCardFromGraveyard,
   getCardFromBoard,
   removeCardFromBoard,
+  playSoundEffect,
 } from "./construct";
-import { getCardDef } from "./cards";
+import { getCardDef, getNormalizedName } from "./cards";
 
 function isValidMove(
   G: GameState,
@@ -65,17 +66,18 @@ function playCardFromHand(
   boardPlayer: Player
 ) {
   const player = getCurrentPlayer(ctx);
-  const card = getCardFromHand(G, player, cardId);
+  const card = getCardFromHand(G, player, cardId) as Card;
   console.log(player, cardId, boardCell);
   if (!isValidMove(G, ctx, card, boardCell, boardPlayer)) {
     console.log("INVALID_MOVE");
     return INVALID_MOVE;
   }
-  const cardDef = getCardDef((card as Card).name);
+  const cardDef = getCardDef(card.name);
   return fp.flow(
     removeCardFromHand(player, cardId),
-    addCardToBoard(boardPlayer, card as Card, boardCell),
+    addCardToBoard(boardPlayer, card, boardCell),
     setPlayerPassed(player, false),
+    playSoundEffect(card?.name.toLowerCase().replace(" ", "_")),
     (G) =>
       cardDef?.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G
   )(G);
@@ -101,6 +103,7 @@ function playCardFromBoard(
   return fp.flow(
     removeCardFromBoard(fromBoardPlayer, cardId),
     addCardToBoard(toBoardPlayer, card, boardCell),
+    playSoundEffect(card?.name.toLowerCase().replace(" ", "_")),
     (G) => {
       // card must switch sides to activate onPlace effect
       if (cardDef?.onPlace && fromBoardPlayer !== toBoardPlayer) {
