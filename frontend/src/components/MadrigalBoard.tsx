@@ -38,10 +38,9 @@ const cardStyle: React.CSSProperties = {
   width: "60px",
   height: "90px",
   // lineHeight: '20px',
+  color: "white",
   textAlign: "center",
   margin: 3,
-  backgroundColor: "darkgray",
-  backgroundImage: "url(cardimages/default.jpg)",
   backgroundSize: "100%",
   outlineStyle: "solid",
   outlineColor: "transparent",
@@ -56,7 +55,9 @@ const cardBacksideStyle: React.CSSProperties = {
   width: "60px",
   height: "90px",
   textAlign: "center",
-  backgroundColor: "lightgray",
+  color: "white",
+  backgroundImage: `url(${getStorageUrl("card_images/background-card.jpg")}`,
+  backgroundSize: "100%",
   margin: 20,
 };
 
@@ -93,16 +94,14 @@ const PlayerHandCardComp = ({
   hidden,
   player,
 }: PlayerHandCardProps) => {
-  const bucket =
-    process.env.GOOGLE_CLOUD_PROJECT || "madrigal-online.appspot.com";
-  const baseImgUrl = "https://storage.googleapis.com";
-  const fullImgUrl = `${baseImgUrl}/${bucket}/${card.imageUrl}`;
   const style = {
     ...cardStyle,
     borderColor: hidden ? "transparent" : card.color,
     outlineWidth: selected ? 2 : 0,
     outlineColor: selected ? "white" : "transparent",
-    backgroundImage: hidden ? "" : `url(${fullImgUrl})`,
+    backgroundImage: hidden
+      ? ""
+      : `url(${getImageUrl(card.color, card.normalizedName)})`,
   };
   return (
     <div
@@ -406,7 +405,7 @@ function MadrigalBoard({
         overflow: "auto",
         width: "100%",
         height: "100vh",
-        backgroundImage: 'url("background.jpg")',
+        backgroundImage: `url(${getStorageUrl("backgrounds/default.jpg")})`,
         backgroundSize: "cover",
       }}
     >

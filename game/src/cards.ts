@@ -17,8 +17,8 @@ import {
 } from "./construct";
 import { endTurn } from "./moves";
 
-const getImageUrl = (color: CardColor, name: string) =>
-  `card_images/${name}-${color}.jpg`;
+
+export const getNormalizedName = (name: string) => name.toLowerCase().replace(" ", "_")
 
 export const makeCardConstructor =
   (cardDef: CardDefinition) => (color: CardColor) => {

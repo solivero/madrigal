@@ -2,31 +2,27 @@ module.exports = {
   env: {
     browser: true,
     es2021: true,
-    node: true
+    node: true,
   },
   extends: [
-    'plugin:react/recommended',
-    'plugin:prettier/recommended',
+    "plugin:react/recommended",
+    "plugin:prettier/recommended",
     // 'react-app'
   ],
 
-  parser: '@typescript-eslint/parser',
+  parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaFeatures: {
-      jsx: true
+      jsx: true,
     },
     ecmaVersion: 12,
-    sourceType: 'module'
+    sourceType: "module",
   },
-  plugins: [
-    'react',
-    '@typescript-eslint',
-    'prettier'
-  ],
+  plugins: ["react", "@typescript-eslint", "prettier"],
   rules: {
     // note you must disable the base rule as it can report incorrect errors
-    'no-use-before-define': 'off',
-    '@typescript-eslint/no-use-before-define': ['error'],
-    'space-before-function-paren': 'off'
-  }
-}
+    "no-use-before-define": "off",
+    "@typescript-eslint/no-use-before-define": ["error"],
+    "space-before-function-paren": "off",
+  },
+};
