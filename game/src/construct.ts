@@ -102,6 +102,76 @@ function getSlotByCardName(cardSlots: CardSlot[], name: string) {
   return cardSlots.find((slot) => slot.card?.name === name);
 }
 
+function addFullRowEffect(player: Player, card: Card, boardCell: number) {
+  return (G: GameState, ctx: Ctx) => {
+    const playerState = getPlayerState(G, player);
+    const { board } = playerState;
+    const slotColor = board.cardSlots[boardCell].color;
+    if (slotColor === "neutral") {
+      return G; // Noop
+    }
+    const coloredRowSlots = board.cardSlots.filter(
+      (cardSlot) => cardSlot.color === slotColor
+    );
+    if (coloredRowSlots.every((cardSlot) => cardSlot.card)) {
+      console.log(slotColor, "row is full. Do effect!");
+      switch (slotColor) {
+        case "blue":
+          return drawCard(player)(G);
+        case "green":
+          if (playerState.graveyard.length === 0) {
+            console.log("Graveyard is empty. Do nothing");
+            return G;
+          }
+          // Did not work, probably because endTurn is called by the card onPlace before this takes effect
+          // ctx.events?.setActivePlayers({
+          //   [player]: { stage: "selectGraveyardOwn", maxMoves: 1 },
+          // });
+          const graveyardCard = _.first(playerState.graveyard);
+          if (!graveyardCard?.id) {
+            return G;
+          }
+          const card = getCardFromGraveyard(G, player, graveyardCard.id);
+          if (card?.id) {
+            return _.flow(
+              addCardToHand(player, card),
+              removeCardFromGraveyard(player, card.id)
+            )(G);
+          }
+        case "red":
+          const [{ cardId, boardCell }, ...historyTail] =
+            playerState.board.history;
+          // Won't work due to onPlace endTurn calls...
+          // ctx.events?.setActivePlayers({
+          //   [player]: { stage: "selectBoardOpponent", maxMoves: 1 },
+          // });
+          const getLastPlayed = (history: any[]): any => {
+            const [historyItem, ...historyTail] = history;
+            if (!historyItem) {
+              return;
+            } else if (
+              // Still there?
+              board.cardSlots[historyItem.boardCell].card?.id ===
+              historyItem.cardId
+            ) {
+              return historyItem;
+            } else {
+              return getLastPlayed(historyTail);
+            }
+          };
+          const lastPlayed = getLastPlayed(playerState.board.history);
+          if (lastPlayed) {
+            return removeCardFromBoard(player, lastPlayed.cardId)(G);
+          }
+          return G;
+        default:
+          return G;
+      }
+    }
+    return G;
+  };
+}
+
 function addBuffs(player: Player): GameStateProducer {
   const determinePoints = (
     slot: CardSlot,
@@ -256,6 +326,7 @@ function addCardToBoard(player: Player, card: Card, boardCell: number) {
       board: {
         ...board,
         cardSlots,
+        history: [{ cardId: card.id, boardCell }, ...board.history],
       },
     };
   });
@@ -348,5 +419,5 @@ export {
   getCardFromBoard,
   removeCardFromBoard,
   getRow,
-  playSoundEffect,
+  addFullRowEffect,
 };

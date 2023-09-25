@@ -15,7 +15,7 @@ import {
   getCardFromGraveyard,
   getCardFromBoard,
   removeCardFromBoard,
-  playSoundEffect,
+  addFullRowEffect,
 } from "./construct";
 import { getCardDef, getNormalizedName } from "./cards";
 
@@ -68,6 +68,10 @@ function playCardFromHand(
   const player = getCurrentPlayer(ctx);
   const card = getCardFromHand(G, player, cardId) as Card;
   console.log(player, cardId, boardCell);
+  if (!card) {
+    console.error(`Card ${cardId} does not exist in player ${player} hand!`);
+    return G;
+  }
   if (!isValidMove(G, ctx, card, boardCell, boardPlayer)) {
     console.log("INVALID_MOVE");
     return INVALID_MOVE;
@@ -76,8 +80,8 @@ function playCardFromHand(
   return fp.flow(
     removeCardFromHand(player, cardId),
     addCardToBoard(boardPlayer, card, boardCell),
+    (G) => addFullRowEffect(boardPlayer, card, boardCell)(G, ctx),
     setPlayerPassed(player, false),
-    playSoundEffect(card?.name.toLowerCase().replace(" ", "_")),
     (G) =>
       cardDef?.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G
   )(G);
@@ -103,7 +107,7 @@ function playCardFromBoard(
   return fp.flow(
     removeCardFromBoard(fromBoardPlayer, cardId),
     addCardToBoard(toBoardPlayer, card, boardCell),
-    playSoundEffect(card?.name.toLowerCase().replace(" ", "_")),
+    addFullRowEffect(toBoardPlayer, card, boardCell),
     (G) => {
       // card must switch sides to activate onPlace effect
       if (cardDef?.onPlace && fromBoardPlayer !== toBoardPlayer) {
@@ -137,7 +141,7 @@ function selectGraveyardCard(
     return G;
   }
   return fp.flow(
-    addCardToHand(ctx, currentPlayerId, card),
+    addCardToHand(currentPlayerId, card),
     removeCardFromGraveyard(fromPlayerId, cardId)
   )(G);
 }

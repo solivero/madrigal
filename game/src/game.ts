@@ -66,6 +66,7 @@ function setup(ctx: Ctx): GameState {
         ),
         cols: nCols,
         rows: rowColors.length,
+        history: [],
       },
       hand: [],
       graveyard: [],

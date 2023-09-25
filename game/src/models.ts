@@ -22,7 +22,7 @@ export type CardName =
 export type Card = Pick<CardDefinition, "name" | "points" | "isHero"> & {
   basePoints: number;
   color: CellColor;
-  id?: string;
+  id: string;
   normalizedName: string;
 };
 
@@ -58,6 +58,7 @@ export interface Board {
   cardSlots: CardSlot[];
   rows: number;
   cols: number;
+  history: { cardId: string; boardCell: number }[];
 }
 
 export interface PlayerState {
