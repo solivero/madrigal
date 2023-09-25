@@ -75,5 +75,4 @@ export interface GameState {
     1: PlayerState;
   };
   deck: Card[];
-  sounds: string[];
 }

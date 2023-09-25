@@ -261,19 +261,9 @@ function addCardToBoard(player: Player, card: Card, boardCell: number) {
   });
 }
 
-function playSoundEffect(sound: string): GameStateProducer {
-  return fp.update("sounds", (sounds) => [sound, ...sounds])
-}
-
-function addCardToHand(
-  ctx: Ctx,
-  player: Player,
-  card: Card
-): GameStateProducer {
-  const id = `${player}-${Math.random().toString(36).slice(2)}`;
-  const newCard = { ...card, id };
+function addCardToHand(player: Player, card: Card): GameStateProducer {
   return updatePlayer(player, (playerState) => ({
-    hand: [...playerState.hand, newCard],
+    hand: [...playerState.hand, card],
   }));
 }
 
@@ -291,7 +281,7 @@ function removeCardFromGraveyard(
   }));
 }
 
-function drawCard(ctx: Ctx, player: Player): GameStateProducer {
+function drawCard(player: Player): GameStateProducer {
   return (G: GameState) => {
     const card = _.head(G.deck);
     if (card) {
@@ -300,7 +290,7 @@ function drawCard(ctx: Ctx, player: Player): GameStateProducer {
         ...G,
         deck,
       };
-      return addCardToHand(ctx, player, card)(gameState);
+      return addCardToHand(player, card)(gameState);
     }
     return G;
   };

@@ -80,11 +80,10 @@ function setup(ctx: Ctx): GameState {
       1: emptyPlayerState(P1),
     },
     deck: makeShuffledDeck(ctx),
-    sounds: [],
   };
 
   const drawStartingCards = (player: Player) => {
-    return _.times(10).map(() => drawCard(ctx, player));
+    return _.times(10).map(() => drawCard(player));
   };
   const addStartingCards = fp.flow([
     ...drawStartingCards(P0),
@@ -142,10 +141,7 @@ const Madrigal: Game<GameState> = {
     },
     onMove: (G, ctx): GameState => {
       console.log("Move! activePlayers", ctx.activePlayers);
-      return {
-        ...G,
-        sounds: [],
-      }
+      return G;
     },
     endIf: (G, ctx) => {
       console.log("END?", !ctx.activePlayers);

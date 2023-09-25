@@ -17,8 +17,13 @@ import {
 } from "./construct";
 import { endTurn } from "./moves";
 
+export const getNormalizedName = (name: string) =>
+  name.toLowerCase().replace(" ", "_");
 
-export const getNormalizedName = (name: string) => name.toLowerCase().replace(" ", "_")
+const makeCardId = (cardDef: CardDefinition, color: CardColor) =>
+  `${getNormalizedName(cardDef.name)}-${color}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 
 export const makeCardConstructor =
   (cardDef: CardDefinition) => (color: CardColor) => {
@@ -30,6 +35,7 @@ export const makeCardConstructor =
       points,
       basePoints: points,
       normalizedName: getNormalizedName(name),
+      id: makeCardId(cardDef, color),
     };
     return card;
   };
@@ -148,7 +154,7 @@ export const cardDefinitions: CardDefinition[] = [
     onPlace: (G, ctx) => {
       const player = getCurrentPlayer(ctx);
       ctx.events?.endTurn();
-      return drawCard(ctx, player)(G);
+      return drawCard(player)(G);
     },
     validMoves: matchingColorPlayerBoardMoves,
   },
@@ -188,6 +194,8 @@ export const cardDefinitions: CardDefinition[] = [
           currentPlayer: "selectBoardCardOpponent",
           maxMoves: 1,
         });
+      } else {
+        ctx.events?.endTurn();
       }
       return G;
     },
@@ -204,7 +212,7 @@ export const cardDefinitions: CardDefinition[] = [
       if (graveyard.length === 0) {
         console.log("Drew card from deck because of empty graveyard");
         ctx.events?.endTurn();
-        return drawCard(ctx, player)(G);
+        return drawCard(player)(G);
       }
       console.log("Should choose from graveyard");
       ctx.events?.setActivePlayers({
