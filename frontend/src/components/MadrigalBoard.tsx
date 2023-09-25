@@ -100,7 +100,7 @@ const PlayerHandCardComp = ({
     outlineWidth: selected ? 2 : 0,
     outlineColor: selected ? "white" : "transparent",
     backgroundImage: hidden
-      ? ""
+      ? `url(${getStorageUrl("card_images/background-card.jpg")}`
       : `url(${getImageUrl(card.color, card.normalizedName)})`,
   };
   return (
@@ -442,7 +442,15 @@ function MadrigalBoard({
           />
         </div>
       </Modal>
-      <div style={{ display: "flex", justifyContent: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          // alignItems: "center",
+          alignContent: "space-between",
+          height: "100%",
+        }}
+      >
         <div
           id="left-col"
           style={{
@@ -467,7 +475,14 @@ function MadrigalBoard({
             <h2>Games {player.games}</h2>
           </div>
         </div>
-        <div id="mid-col">
+        <div
+          id="mid-col"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
           <PlayerHand player={opponentPlayerId} hand={opponent.hand} hidden />
           <div style={{ height: 10 }}></div>
           <PlayerBoard
