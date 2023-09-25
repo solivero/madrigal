@@ -7,7 +7,7 @@
     "gcp-build": "tsc",
     "start": "node dist/server.js",
     "start-dev": "ts-node server.ts",
-    "deploy": "npm pack ../game; npm install --save ./madrigal*.tgz; gcloud app deploy server.yaml"
+    "deploy": "npm pack ../game; npm install --save ./madrigal*.tgz; gcloud app deploy server.yaml;  npm link @madrigal/core"
   },
   "dependencies": {
     "@types/lodash": "^4.14.168",
