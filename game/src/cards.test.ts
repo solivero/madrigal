@@ -7,7 +7,13 @@ import {
   makeCard,
   makeCardConstructor,
 } from "./cards";
-import { addCardToBoard, addCardToHand, getRow } from "./construct";
+import {
+  addCardToBoard,
+  addCardToHand,
+  getCardFromHand,
+  getPlayerState,
+  getRow,
+} from "./construct";
 import { Madrigal, nCols } from "./game";
 import { Card, GameState } from "./models";
 
@@ -62,7 +68,7 @@ it("Smith buffs cards on row", () => {
 it("Fisherman draws card", () => {
   const scenario = makeScenario((initState, ctx) => {
     const fisherman = makeCard("Fisherman", "green");
-    const addFishermanToHand = addCardToHand(ctx, "0", fisherman);
+    const addFishermanToHand = addCardToHand("0", fisherman);
     return addFishermanToHand(initState);
   });
   const client = Client({
@@ -79,7 +85,7 @@ it("Fisherman draws card", () => {
 it("Playing card removes it from hand", () => {
   const scenario = makeScenario((initState, ctx) => {
     const warrior = makeCard("Warrior", "green");
-    const addToHand = addCardToHand(ctx, "0", warrior);
+    const addToHand = addCardToHand("0", warrior);
     return addToHand(initState);
   });
   const client = Client({
@@ -150,7 +156,6 @@ it("Hero does not get effects", () => {
   const blueTreasurer = cardSlots[1 + nCols].card;
   expect(blueTreasurer?.points).toBe(10);
 });
-
 it("Flag doubles points for row when placed in effect slot", () => {
   const topIdx = 1;
   const midIdx = 1 + nCols;
@@ -351,4 +356,41 @@ it("Farmer buffs multiplies", () => {
   // Buff, 2 per farmer
   const treasurer = cardSlots[treasurerIdx].card;
   expect(treasurer?.points).toBe(10 + 4);
+});
+
+it("Full blue row draws card from deck", () => {
+  const scenario = makeScenario((initState, ctx) => {
+    const warrior = makeCard("Warrior", "blue");
+    const addWarrior = _.partial(addCardToBoard, "0", warrior);
+    const addWarriors = _.flow(
+      addWarrior(nCols + 1),
+      addWarrior(nCols + 2),
+      addWarrior(nCols + 3),
+      addWarrior(nCols + 4),
+      addCardToHand("0", warrior)
+    );
+    return addWarriors(initState);
+  });
+  const client = Client({
+    game: scenario,
+  });
+  const preState = client.getState();
+  if (!preState) {
+    throw Error("No state");
+  }
+  const preDeck = preState.G.deck;
+  const preHand = getPlayerState(preState.G, "0").hand;
+  const warrior = _.last(preHand);
+  expect(warrior?.name == "Warrior");
+  client.moves.playCardFromHand(warrior?.id, nCols + 5, "0");
+  const postState = client.getState();
+  if (!postState) {
+    throw Error("No state");
+  }
+  const postDeck = postState.G.deck;
+  const postHand = getPlayerState(postState.G, "0").hand;
+  expect(postHand?.length).toBe(preHand?.length);
+  expect(postDeck?.length).toBe((preDeck.length || 0) - 1);
+  const preDeckTop = preDeck?.[0];
+  expect(_.last(postHand)?.id).toBe(preDeckTop?.id);
 });
