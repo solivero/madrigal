@@ -9,12 +9,14 @@
     "lodash": "^4.17.21",
     "prettier": "^2.3.0",
     "prettier-eslint": "^12.0.0",
+    "ts-jest": "^29.1.1",
     "typescript": "^4.1.2"
   },
   "main": "dist/game.js",
   "scripts": {
     "build": "tsc",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "jest"
   },
   "files": [
     "dist"
