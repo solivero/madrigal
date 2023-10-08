@@ -10,6 +10,7 @@ import {
 import {
   addCardToBoard,
   addCardToHand,
+  boardToGraveyard,
   getCardFromHand,
   getPlayerState,
   getRow,
@@ -393,4 +394,83 @@ it("Full blue row draws card from deck", () => {
   expect(postDeck?.length).toBe((preDeck.length || 0) - 1);
   const preDeckTop = preDeck?.[0];
   expect(_.last(postHand)?.id).toBe(preDeckTop?.id);
+});
+
+it("Full green row draws card from graveyard", () => {
+  const scenario = makeScenario((initState, ctx) => {
+    const warrior = makeCard("Warrior", "green");
+    const deadCard = makeCard("Priest", "blue");
+    const addWarrior = _.partial(addCardToBoard, "0", warrior);
+    const addWarriors = _.flow(
+      addCardToBoard("0", deadCard, nCols + 1),
+      boardToGraveyard("0"),
+      addWarrior(1),
+      addWarrior(2),
+      addWarrior(3),
+      addWarrior(4),
+      addCardToHand("0", warrior)
+    );
+    return addWarriors(initState);
+  });
+  const client = Client({
+    game: scenario,
+  });
+  const preState = client.getState();
+  if (!preState) {
+    throw Error("No state");
+  }
+  const preGraveyard = getPlayerState(preState.G, "0").graveyard;
+  const preHand = getPlayerState(preState.G, "0").hand;
+  const warrior = _.last(preHand);
+  expect(warrior?.name == "Warrior");
+  client.moves.playCardFromHand(warrior?.id, 5, "0");
+  const postState = client.getState();
+  if (!postState) {
+    throw Error("No state");
+  }
+  const postGraveyard = getPlayerState(postState.G, "0").graveyard;
+  const postHand = getPlayerState(postState.G, "0").hand;
+  expect(postHand?.length).toBe(preHand?.length);
+  expect(postGraveyard?.length).toBe((preGraveyard.length || 0) - 1);
+  const preGraveyardTop = preGraveyard?.[0];
+  expect(_.last(postHand)?.id).toBe(preGraveyardTop?.id);
+});
+
+it("Full red row kills last card from opponent", () => {
+  const scenario = makeScenario((initState, ctx) => {
+    const warrior = makeCard("Warrior", "red");
+    const opponent_warrior = makeCard("Warrior", "green");
+    const addWarrior = _.partial(addCardToBoard, "0", warrior);
+    const addWarriors = _.flow(
+      addWarrior(2 * nCols + 1),
+      addWarrior(2 * nCols + 2),
+      addWarrior(2 * nCols + 3),
+      addWarrior(2 * nCols + 4),
+      addCardToBoard("1", opponent_warrior, 0),
+      addCardToBoard("1", opponent_warrior, 1),
+      addCardToHand("0", warrior)
+    );
+    return addWarriors(initState);
+  });
+  const client = Client({
+    game: scenario,
+  });
+  const preState = client.getState();
+  if (!preState) {
+    throw Error("No state");
+  }
+  const opponentPreBoard = getPlayerState(preState.G, "1").board;
+  // Last card placed by opponent
+  expect(opponentPreBoard.cardSlots[1].card?.name == "Warrior");
+  const preHand = getPlayerState(preState.G, "0").hand;
+  const warrior = _.last(preHand);
+  expect(warrior?.name == "Warrior");
+  client.moves.playCardFromHand(warrior?.id, 2 * nCols + 5, "0");
+  const postState = client.getState();
+  if (!postState) {
+    throw Error("No state");
+  }
+  const opponentPostBoard = getPlayerState(postState.G, "1").board;
+  // Card should have been removed
+  expect(!opponentPostBoard.cardSlots[1].card);
 });
