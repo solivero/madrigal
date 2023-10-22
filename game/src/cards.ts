@@ -36,6 +36,7 @@ export const makeCardConstructor =
       basePoints: points,
       normalizedName: getNormalizedName(name),
       id: makeCardId(cardDef, color),
+      effects: {},
     };
     return card;
   };

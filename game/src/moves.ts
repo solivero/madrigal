@@ -16,6 +16,7 @@ import {
   getCardFromBoard,
   removeCardFromBoard,
   addFullRowEffect,
+  addEvent,
 } from "./construct";
 import { getCardDef, getNormalizedName } from "./cards";
 
@@ -83,7 +84,11 @@ function playCardFromHand(
     (G) => addFullRowEffect(boardPlayer, card, boardCell)(G, ctx),
     setPlayerPassed(player, false),
     (G) =>
-      cardDef?.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G
+      cardDef?.onPlace ? cardDef.onPlace(G, ctx, boardCell, boardPlayer) : G,
+    addEvent({
+      player,
+      description: `Played ${card.color} ${card.name} from hand`,
+    })
   )(G);
 }
 
@@ -115,19 +120,28 @@ function playCardFromBoard(
       } else {
         return G;
       }
-    }
+    },
+    addEvent({
+      player,
+      description: `Moved ${card.color} ${card.name} from ${fromBoardPlayer} to ${toBoardPlayer}`,
+    })
   )(G);
 }
 
 function pass(G: GameState, ctx: Ctx): GameState {
   const player = getCurrentPlayer(ctx);
   ctx.events?.endTurn();
-  return setPlayerPassed(player, true)(G);
+  return fp.flow(
+    addEvent({ player, description: "Passed" }),
+    setPlayerPassed(player, true)
+  )(G);
 }
+
 function endTurn(G: GameState, ctx: Ctx): GameState {
   ctx.events?.endTurn();
   return G;
 }
+
 function selectGraveyardCard(
   G: GameState,
   ctx: Ctx,

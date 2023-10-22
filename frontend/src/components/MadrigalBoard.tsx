@@ -6,12 +6,15 @@ import {
   Board,
   Player,
   CardSlot,
+  GameEvent,
+  CardName,
 } from "@madrigal/core/dist/models";
 import { range } from "lodash";
 import _ from "lodash";
 import Modal from "react-modal";
 import { BoardProps } from "boardgame.io/dist/types/packages/react";
 import { Howl, Howler } from "howler";
+import { Tooltip } from "react-tooltip";
 
 interface Props {
   moves: any;
@@ -22,6 +25,36 @@ interface Props {
   isMultiplayer: boolean;
   isActive: boolean;
 }
+
+const heroDescription =
+  "Påverkas inte av effekter flaggor, kombinationer, dimma. Buffs från bönder och smeder gäller för hjältar ";
+const cardDescriptions: Record<CardName, string> = {
+  Spy: "Lägg på motståndarens sida och ta upp ett kort från din egen eller motståndarens slänghög. Om inga kort finns i slänghögen, ges ingen effekt. Motståndaren väljer placering för spionen i raden med motsvarande färg. Annars läggs spion på spelarens sida med värde 1 utan att ta upp kort",
+  Thief:
+    "Lägg på motståndarens sida. Ta upp 2 kort från din egen slänghög. Motståndaren väljer placering för spionen i raden med motsvarande färg om möjligt. Annars läggs spoion på spelarens sida med värde 2 utan att ta upp kort",
+  Fisherman:
+    "Ta upp kort högst från leken. Motståndaren kan med fördel säga “finns i sjön” för maximal effekt",
+  Farmer:
+    "Höjer alla hjältekort och präster (7, 10, 11, 12, 13) på egen planhalva med 1+ i värde. Kombinera 2 bönder multiplicerar effekter så att varje bonde ger 2+ i värde. Samma för 3 osv ",
+  Smith:
+    "Höjer varje kort som befinner sig i samma rad med 1+ i värde (exklusive präst. Dom behöver inga vapen) ",
+  Merchant:
+    "Lägg på motståndarens sida och ta valfritt utlagt kort från motståndaren till egen sida. Motståndaren placerar själv handelsmannen utifrån färg. Effekter av taget kort appliceras direkt. Om motståndarens rad med handelsmannens färg är fylld så måste ett kort med denna färg bytas så att handelsmannen får plats",
+  Priest:
+    "Lägg på egen spelplan och ta därefter upp valfritt kort från egen slänghög eller ett kort högst från kortleken. Prästkort påverkas precis som hjältar varken av kombinationer, effekter eller flaggor",
+  Warrior: "Det enda kortet utan effekt",
+  "Field marshal":
+    "Flytta valfritt kort på egen planhalva till annan giltig plats. Guldkort kan flytta rad",
+  Treasurer: heroDescription,
+  Queen: heroDescription,
+  King: heroDescription,
+  Standard:
+    "Läggs på planen som en hjälte med 13 poäng eller vid sidan om raden som effekt och dubblerar då radens poäng (exkl hjältar, präster och deras buffs). Dubblerar kortens värde inkl buffs som kombo, smed etc. Gäller bara egen sidas rad. Flaggor kan läggas på båda sidor om en rad (tex blå och guld) om rum finns i sidoplatserna",
+  Fog: "Dimma. Tar bort alla poäng (exkl hjältar) från en rad med samma färg hos båda spelare ",
+  Jester:
+    "Neutraliserar alla nuvarande och kommande effekter, dimma (Z), flaggor (13), kombinationer och buffs på raden den läggs på. Kan läggas på egen eller motståndarens sida",
+};
+
 function getStorageUrl(path: string) {
   const bucket =
     process.env.GOOGLE_CLOUD_PROJECT || "madrigal-online.appspot.com";
@@ -32,11 +65,14 @@ function getStorageUrl(path: string) {
 const getImageUrl = (color: string, name: string) =>
   getStorageUrl(`card_images/${name}-${color}.jpg`);
 
+const cardWidth = 74;
+const cardHeight = cardWidth * 1.5;
+
 const cardStyle: React.CSSProperties = {
   border: "2px solid #555",
   borderRadius: "5px",
-  width: "60px",
-  height: "90px",
+  width: cardWidth,
+  height: cardHeight,
   // lineHeight: '20px',
   color: "white",
   textAlign: "center",
@@ -52,14 +88,71 @@ const cardStyle: React.CSSProperties = {
 const cardBacksideStyle: React.CSSProperties = {
   border: "2px solid #555",
   borderRadius: "5px",
-  width: "60px",
-  height: "90px",
+  width: cardWidth,
+  height: cardHeight,
   textAlign: "center",
   color: "white",
   backgroundImage: `url(${getStorageUrl("card_images/background-card.jpg")}`,
   backgroundSize: "100%",
   margin: 20,
 };
+
+const SelectedCard = ({ card }: { card: Card }) => (
+  <div
+    style={{
+      ...cardStyle,
+      width: cardWidth * 3,
+      height: cardHeight * 3,
+      borderColor: card ? card.color : "white",
+      transform: card?.color === "neutral" ? "rotate(90deg)" : "none",
+    }}
+  >
+    {card && (
+      <>
+        <div
+          style={{
+            // ...cardStyle,
+            width: "100%",
+            height: cardHeight * 2,
+            backgroundSize: "100%",
+            backgroundImage: card
+              ? `url(${getImageUrl(card.color, card.normalizedName)})`
+              : "",
+          }}
+        >
+          <span style={{ fontSize: "150%" }}>{card.name}</span>
+        </div>
+        <div style={{ background: "gray", height: cardHeight }}>
+          <span>
+            {cardDescriptions[card.name]}
+            <br />
+          </span>
+
+          <br />
+          <span
+            style={{
+              color: card.points > card.basePoints ? "gold" : "inherit",
+            }}
+          >
+            {card.points}
+          </span>
+          {card.effects && (
+            <table>
+              <tbody>
+                {Object.entries(card.effects).map(([effect, points]) => (
+                  <tr key={effect}>
+                    <td>{effect}</td>
+                    <td>{points}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </>
+    )}
+  </div>
+);
 
 const CardComp = ({ card, selected }: { card: Card; selected: boolean }) => (
   <div
@@ -74,6 +167,12 @@ const CardComp = ({ card, selected }: { card: Card; selected: boolean }) => (
   >
     <span style={{ fontSize: "80%" }}>{card.name}</span>
     <span style={{ color: card.points > card.basePoints ? "gold" : "inherit" }}>
+      <span>
+        {Object.keys(card.effects)
+          .map((effect) => effect[0].toUpperCase())
+          .join(" ")}
+      </span>
+      <br />
       {card.points}
     </span>
   </div>
@@ -108,11 +207,23 @@ const PlayerHandCardComp = ({
       className={"Card-Hand-Bottom"}
       style={style}
       onClick={() => !hidden && onSelect(card)}
+      data-tooltip-id="my-tooltip"
+      data-tooltip-content={cardDescriptions[card.name]}
+      // data-tooltip-place="right"
     >
       {!hidden && (
         <>
           <span style={{ fontSize: "80%" }}>{card.name}</span>
-          <span>{card.points}</span>
+          <span
+            style={{
+              width: "40%",
+              margin: "0 auto",
+              borderRadius: "50%",
+              background: "gray",
+            }}
+          >
+            {card.points}
+          </span>
         </>
       )}
     </div>
@@ -145,8 +256,8 @@ function PlayerHand(props: {
 const cardSlotStyle: React.CSSProperties = {
   border: "2px solid #555",
   borderRadius: "2px",
-  width: "70px",
-  height: "100px",
+  width: cardWidth + 10,
+  height: cardHeight + 10,
   lineHeight: "20px",
   textAlign: "center",
 };
@@ -227,9 +338,28 @@ function Graveyard({ graveyard }: { graveyard: Card[] }) {
 
 function Deck({ deck }: { deck: Card[] }) {
   return (
-    <div style={cardBacksideStyle}>
+    <div
+      style={cardBacksideStyle}
+      data-tooltip-content="WTF"
+      data-tooltip-id="my-tooltip"
+    >
       <p>Deck</p>
       <p>{deck.length}</p>
+    </div>
+  );
+}
+
+function EventLog({ events }: { events: GameEvent[] }) {
+  if (!events) {
+    return <div></div>;
+  }
+  const eventLogText = events.reduce(
+    (logStr, event) => `${logStr}\n${event.player}: ${event.description}`,
+    ""
+  );
+  return (
+    <div style={{}}>
+      <textarea readOnly rows={4} value={eventLogText} />
     </div>
   );
 }
@@ -266,7 +396,7 @@ function Chat({
           setMessage("");
         }}
       >
-        <label>
+        <label htmlFor="message">
           Message:
           <textarea
             value={newMessage}
@@ -323,6 +453,7 @@ function MadrigalBoard({
   const opponentPlayerId = activePlayerId === "0" ? "1" : "0";
   const opponent = G.players[opponentPlayerId];
   const [activeCardId, setActiveCardId] = React.useState<string>("");
+  const [detailedCardId, setDetailedCardId] = React.useState<string>("");
   const [activeCardPlayer, setActiveCardPlayer] =
     React.useState<Player>(activePlayerId);
   const selectCard = (card: Card, player: Player) => {
@@ -409,7 +540,6 @@ function MadrigalBoard({
         backgroundSize: "cover",
       }}
     >
-      <Chat sendChatMessage={sendChatMessage} chatMessages={chatMessages} />
       <Modal
         isOpen={modalIsOpen}
         onAfterOpen={afterOpenModal}
@@ -452,6 +582,19 @@ function MadrigalBoard({
         }}
       >
         <div
+          id="lllleft-col"
+          style={{
+            paddingRight: 32,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            width: 200,
+          }}
+        >
+          <Chat sendChatMessage={sendChatMessage} chatMessages={chatMessages} />
+          <EventLog events={G.events} />
+        </div>
+        <div
           id="left-col"
           style={{
             paddingRight: 32,
@@ -490,6 +633,9 @@ function MadrigalBoard({
             board={opponent.board}
             activeCardId={activeCardId}
             onClickSlot={(cardSlot) => {
+              if (cardSlot.card) {
+                setDetailedCardId(cardSlot.card.id);
+              }
               const selectOwnBoard = playerIsInStage(
                 currentPlayerId,
                 "selectBoardCardOwn"
@@ -522,6 +668,10 @@ function MadrigalBoard({
             board={player.board}
             activeCardId={activeCardId}
             onClickSlot={(cardSlot) => {
+              if (cardSlot.card) {
+                console.log(cardSlot.card);
+                setDetailedCardId(cardSlot.card.id);
+              }
               const inSelectOwnStage = playerIsInStage(
                 currentPlayerId,
                 "selectBoardCardOwn"
@@ -579,7 +729,36 @@ function MadrigalBoard({
           </button>
           <Graveyard graveyard={player.graveyard} />
         </div>
+        <div
+          id="rrrright-col"
+          style={{
+            paddingLeft: 32,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            width: 200,
+          }}
+        >
+          <SelectedCard
+            card={
+              [...player.board.cardSlots, ...opponent.board.cardSlots].find(
+                (slot: any) => slot.card?.id === detailedCardId
+              )?.card
+            }
+          />
+        </div>
       </div>
+      <Tooltip
+        place="right"
+        anchorSelect=".Card-Hand-Bottom"
+        delayShow={100}
+        variant="info"
+        style={{
+          minHeight: cardHeight / 2,
+          width: cardWidth * 2,
+        }}
+        render={({ content, activeAnchor }) => <span>{content}</span>}
+      />
     </div>
   );
 }

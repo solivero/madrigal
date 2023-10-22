@@ -81,6 +81,7 @@ function setup(ctx: Ctx): GameState {
       1: emptyPlayerState(P1),
     },
     deck: makeShuffledDeck(ctx),
+    events: [],
   };
 
   const drawStartingCards = (player: Player) => {

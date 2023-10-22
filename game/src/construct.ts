@@ -8,10 +8,11 @@ import {
   Player,
   CardSlot,
   CardColor,
+  GameEvent,
 } from "./models";
 import { makeCardConstructor, cardDefinitions, slotIsNeutral } from "./cards";
 
-import { Ctx } from "boardgame.io";
+import { Ctx, Game } from "boardgame.io";
 
 type GameStateProducer = (G: GameState) => GameState;
 
@@ -117,11 +118,20 @@ function addFullRowEffect(player: Player, card: Card, boardCell: number) {
       console.log(slotColor, "row is full. Do effect!");
       switch (slotColor) {
         case "blue":
-          return drawCard(player)(G);
+          return fp.flow(
+            drawCard(player),
+            addEvent({
+              player,
+              description: `Full blue row. Drew card from deck`,
+            })
+          )(G);
         case "green":
           if (playerState.graveyard.length === 0) {
             console.log("Graveyard is empty. Do nothing");
-            return G;
+            return addEvent({
+              player,
+              description: `Full green row. Empty graveyard`,
+            })(G);
           }
           // Did not work, probably because endTurn is called by the card onPlace before this takes effect
           // ctx.events?.setActivePlayers({
@@ -135,7 +145,11 @@ function addFullRowEffect(player: Player, card: Card, boardCell: number) {
           if (card?.id) {
             return _.flow(
               addCardToHand(player, card),
-              removeCardFromGraveyard(player, card.id)
+              removeCardFromGraveyard(player, card.id),
+              addEvent({
+                player,
+                description: `Full green row. Drew card from graveyard`,
+              })
             )(G);
           }
         case "red":
@@ -161,7 +175,13 @@ function addFullRowEffect(player: Player, card: Card, boardCell: number) {
           };
           const lastPlayed = getLastPlayed(playerState.board.history);
           if (lastPlayed) {
-            return removeCardFromBoard(player, lastPlayed.cardId)(G);
+            return fp.flow(
+              removeCardFromBoard(player, lastPlayed.cardId),
+              addEvent({
+                player,
+                description: `Full red row. Eliminated ${lastPlayed.cardId} from opponent`,
+              })
+            )(G);
           }
           return G;
         default:
@@ -173,57 +193,70 @@ function addFullRowEffect(player: Player, card: Card, boardCell: number) {
 }
 
 function addBuffs(player: Player): GameStateProducer {
+  // TODO
+  // Make list of buffs with +/- modifiers
+  // Determine points by checking jest/fog/flag in effects array
+  // Sum buffpoints from array if applicable
   const determinePoints = (
-    slot: CardSlot,
-    buffPoints: number,
-    jester: boolean,
-    fog: boolean,
-    flag: boolean
-  ) => {
+    board: Board,
+    slot: CardSlot
+  ): Pick<Card, "effects" | "points"> => {
     const { card } = slot;
     if (!card) {
-      return 0;
+      throw new Error("Card is falsy");
     }
     const isEffectStandard = slotIsNeutral(slot) && card?.name == "Standard";
     if (isEffectStandard) {
-      return 0;
+      return { points: 0, effects: {} };
     }
+    const effectSlots = getRowEffectSlots(board, slot.row);
+    const jester = !!getSlotByCardName(effectSlots, "Jester");
     if (jester) {
-      return card.basePoints;
+      return {
+        points: card.basePoints,
+        effects: { jester: 0 },
+      };
     }
-    if (fog) {
-      return card.isHero ? card.basePoints : 0;
-    }
+    // First Jester - removes all other!
+    // Get modifiers for buffs
+    // Get modifiers for effects that are based on buffs (i.e fog and flag)
+    // Filter out modifiers == 0
+    // Sum effects
+    // Return effects
+    const buffs = {
+      smith: getSmithBuff(board, slot),
+      farmer: getFarmerBuff(board, slot),
+      column: getColumnBuff(board, slot),
+    };
+    const buffPoints = _.sum(Object.values(buffs));
     const buffedPoints = card.basePoints + buffPoints;
-    if (flag) {
-      return card.isHero ? buffedPoints : buffedPoints * 2;
-    }
-    return buffedPoints;
+    const effects = {
+      ...buffs,
+      // TODO fog applies from other board too!
+      fog: getFogEffect(effectSlots, card, buffedPoints),
+      flag: getFlagEffect(effectSlots, card, buffedPoints),
+    };
+    // Filter out modifiers with 0 points, i.e inactive
+    const activeEffects = _.omitBy(effects, (points) => points == 0);
+
+    const effectPoints = _.sum(Object.values(effects));
+    const points = card.basePoints + effectPoints;
+    return { points, effects: activeEffects };
   };
   return updatePlayer(player, ({ board }) => {
     const buffedBoard = board.cardSlots.map((slot) => {
       if (!slot?.card) {
         return slot;
       }
-      const { card, row } = slot;
-      const buffs = [getColumnBuff, getSmithBuff, getFarmerBuff];
-      const appliedBuffs = buffs.map((buff) => buff(board, slot));
-      const buffPoints = _.sum(appliedBuffs);
-      const effectSlots = getRowEffectSlots(board, row);
-      // TODO fog applies from other board too!
-      const hasFog = !!getSlotByCardName(effectSlots, "Fog");
-      const hasJester = !!getSlotByCardName(effectSlots, "Jester");
-      const hasFlag = !!getSlotByCardName(effectSlots, "Standard");
-      const points = determinePoints(
-        slot,
-        buffPoints,
-        hasJester,
-        hasFog,
-        hasFlag
-      );
+      const { card } = slot;
+      const { points, effects } = determinePoints(board, slot);
+      if (points !== card.basePoints) {
+        console.log(card.normalizedName, "got effects", effects);
+      }
       const buffedCard = {
         ...card,
         points,
+        effects,
       };
       return {
         ...slot,
@@ -237,6 +270,30 @@ function addBuffs(player: Player): GameStateProducer {
       },
     };
   });
+}
+
+function getFlagEffect(
+  effectSlots: CardSlot[],
+  card: Card,
+  buffedPoints: number
+): number {
+  const flag = !!getSlotByCardName(effectSlots, "Flag");
+  if (flag) {
+    return card.isHero ? 0 : buffedPoints;
+  }
+  return 0;
+}
+
+function getFogEffect(
+  effectSlots: CardSlot[],
+  card: Card,
+  buffedPoints: number
+): number {
+  const fog = !!getSlotByCardName(effectSlots, "Fog");
+  if (fog) {
+    return card.isHero ? card.basePoints - buffedPoints : -buffedPoints;
+  }
+  return 0;
 }
 
 function getColumnBuff(board: Board, slot: CardSlot): number {
@@ -260,6 +317,7 @@ function getSmithBuff(board: Board, slot: CardSlot): number {
   const rowIdx = Math.floor(slot.index / board.cols);
   const row = getRow(board, rowIdx);
   const smiths = row.filter((slot) => slot?.card?.name === "Smith");
+  const name = "smith";
   // Priests don't need weapons!
   if (slot.card?.name !== "Priest") {
     return smiths.length;
@@ -395,6 +453,13 @@ function boardToGraveyard(player: Player): GameStateProducer {
   });
 }
 
+function addEvent(event: GameEvent): GameStateProducer {
+  return (G) => ({
+    ...G,
+    events: [...G.events, { ...event, time: Date.now() }],
+  });
+}
+
 function getOpponent(player: Player): Player {
   return player === "0" ? "1" : "0";
 }
@@ -420,4 +485,5 @@ export {
   removeCardFromBoard,
   getRow,
   addFullRowEffect,
+  addEvent,
 };

@@ -19,14 +19,22 @@ export type CardName =
   | "Jester"
   | "Standard";
 
+export type EffectName =
+  | "smith"
+  | "farmer"
+  | "column"
+  | "fog"
+  | "jester"
+  | "flag";
+
 export type Card = Pick<CardDefinition, "name" | "points" | "isHero"> & {
   basePoints: number;
   color: CellColor;
   id: string;
   normalizedName: string;
+  effects: Partial<Record<EffectName, number>>;
 };
 
-type Effect = (G: GameState, ctx: Ctx) => GameState;
 export interface CardDefinition {
   name: CardName;
   points: number;
@@ -70,10 +78,17 @@ export interface PlayerState {
   passed: boolean;
 }
 
+export interface GameEvent {
+  player: Player | null;
+  description: string;
+  time?: number;
+}
+
 export interface GameState {
   players: {
     0: PlayerState;
     1: PlayerState;
   };
+  events: GameEvent[];
   deck: Card[];
 }
