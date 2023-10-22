@@ -153,12 +153,9 @@ function addFullRowEffect(player: Player, card: Card, boardCell: number) {
             )(G);
           }
         case "red":
-          const [{ cardId, boardCell }, ...historyTail] =
-            playerState.board.history;
-          // Won't work due to onPlace endTurn calls...
-          // ctx.events?.setActivePlayers({
-          //   [player]: { stage: "selectBoardOpponent", maxMoves: 1 },
-          // });
+          const opponent = getOpponent(player);
+          const opponentState = getPlayerState(G, opponent);
+          const { board } = opponentState;
           const getLastPlayed = (history: any[]): any => {
             const [historyItem, ...historyTail] = history;
             if (!historyItem) {
@@ -173,12 +170,12 @@ function addFullRowEffect(player: Player, card: Card, boardCell: number) {
               return getLastPlayed(historyTail);
             }
           };
-          const lastPlayed = getLastPlayed(playerState.board.history);
+          const lastPlayed = getLastPlayed(board.history);
           if (lastPlayed) {
             return fp.flow(
-              removeCardFromBoard(player, lastPlayed.cardId),
+              removeCardFromBoard(opponent, lastPlayed.cardId),
               addEvent({
-                player,
+                player: opponent,
                 description: `Full red row. Eliminated ${lastPlayed.cardId} from opponent`,
               })
             )(G);

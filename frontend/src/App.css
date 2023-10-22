@@ -40,12 +40,12 @@
 
 .Card-Hand-Top:hover {
   transform: scale(2) translate(0px, 30px);
-  animation: Card-Zoom-In-Down 0.3s linear;
+  animation: Card-Zoom-In-Down 0.2s linear;
 }
 
 .Card-Hand-Bottom:hover {
   transform: scale(2) translate(0px, -30px);
-  animation: Card-Zoom-In-Up 0.3s linear;
+  animation: Card-Zoom-In-Up 0.2s linear;
 }
 
 @keyframes Card-Zoom-In-Down {

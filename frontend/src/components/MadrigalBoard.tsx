@@ -97,59 +97,66 @@ const cardBacksideStyle: React.CSSProperties = {
   margin: 20,
 };
 
-const SelectedCard = ({ card }: { card: Card }) => (
+const DetailedCard = ({ card }: { card: Card }) => (
   <div
     style={{
-      ...cardStyle,
       width: cardWidth * 3,
-      height: cardHeight * 3,
-      borderColor: card ? card.color : "white",
-      transform: card?.color === "neutral" ? "rotate(90deg)" : "none",
+      minHeight: cardHeight * 2,
+      borderColor: card ? card.color : "none",
+      borderRadius: 5,
+      borderStyle: card ? "solid" : "none",
     }}
   >
     {card && (
-      <>
+      <div style={{ backgroundColor: "rgba(189, 189, 189, 0.5)" }}>
         <div
           style={{
             // ...cardStyle,
-            width: "100%",
-            height: cardHeight * 2,
+            width: cardWidth * 3,
+            height: cardHeight * 3,
             backgroundSize: "100%",
             backgroundImage: card
               ? `url(${getImageUrl(card.color, card.normalizedName)})`
               : "",
           }}
-        >
-          <span style={{ fontSize: "150%" }}>{card.name}</span>
-        </div>
-        <div style={{ background: "gray", height: cardHeight }}>
-          <span>
-            {cardDescriptions[card.name]}
-            <br />
-          </span>
-
+        ></div>
+        <div style={{ padding: 5 }}>
+          <p style={{ fontSize: "130%" }}>{card.name}</p>
+          <p>{cardDescriptions[card.name]}</p>
+          <span>Base points: {card.basePoints}</span>
           <br />
+          <span>Effects: </span>
+          {Object.keys(card.effects).length == 0 ? (
+            <span>
+              none
+              <br />
+            </span>
+          ) : (
+            <>
+              <table>
+                <tbody>
+                  {Object.entries(card.effects).map(([effect, points]) => (
+                    <tr key={effect}>
+                      <td>{effect}</td>
+                      <td>
+                        {points > 0 && "+"}
+                        {points}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
           <span
             style={{
               color: card.points > card.basePoints ? "gold" : "inherit",
             }}
           >
-            {card.points}
+            <span>Points {card.points} </span>
           </span>
-          {card.effects && (
-            <table>
-              <tbody>
-                {Object.entries(card.effects).map(([effect, points]) => (
-                  <tr key={effect}>
-                    <td>{effect}</td>
-                    <td>{points}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
-      </>
+      </div>
     )}
   </div>
 );
@@ -329,9 +336,11 @@ function PlayerBoard(props: {
 }
 function Graveyard({ graveyard }: { graveyard: Card[] }) {
   return (
-    <div style={graveyard.length ? cardBacksideStyle : cardSlotStyle}>
-      <p>Graveyard</p>
-      <p>{graveyard.length}</p>
+    <div>
+      <div style={graveyard.length ? cardBacksideStyle : cardSlotStyle}>
+        <p>Graveyard</p>
+        <p>{graveyard.length}</p>
+      </div>
     </div>
   );
 }
@@ -354,12 +363,20 @@ function EventLog({ events }: { events: GameEvent[] }) {
     return <div></div>;
   }
   const eventLogText = events.reduce(
-    (logStr, event) => `${logStr}\n${event.player}: ${event.description}`,
+    (logStr, event) =>
+      `${new Date(event.time || 0).toLocaleTimeString()} ${event.player}: ${
+        event.description
+      }\n${logStr}`,
     ""
   );
   return (
-    <div style={{}}>
-      <textarea readOnly rows={4} value={eventLogText} />
+    <div>
+      <textarea
+        readOnly
+        rows={6}
+        value={eventLogText}
+        style={{ width: "100%" }}
+      />
     </div>
   );
 }
@@ -373,10 +390,8 @@ function Chat({
     <div
       style={{
         backgroundColor: "rgba(0, 0, 0, .5)",
-        width: 200,
-        float: "left",
+        width: "100%",
         color: "white",
-        display: "",
       }}
     >
       <h2>Chat</h2>
@@ -418,13 +433,14 @@ function MadrigalBoard({
   chatMessages,
   log,
 }: BoardProps) {
-  console.log(log);
+  console.log("Render board");
   const lastMove = log
     .reverse()
     .find((entry) => entry.action.type === "MAKE_MOVE");
   const [soundsPlayed, setSoundsPlayed] = React.useState<{
     [moveHash: string]: boolean;
   }>({});
+  const [detailedCardId, setDetailedCardId] = React.useState<string>("");
   if (lastMove) {
     console.log("LAST MOVE", lastMove);
     const moveArgs = lastMove.action.payload.args as any[];
@@ -433,6 +449,9 @@ function MadrigalBoard({
       const [cardId, boardSlot, boardPlayer] = moveArgs;
       const soundId = moveArgs.join("-");
       if (!soundsPlayed[soundId]) {
+        if (detailedCardId !== cardId) {
+          setDetailedCardId(cardId);
+        }
         const cardName =
           G.players[boardPlayer].board.cardSlots[boardSlot]?.card
             ?.normalizedName;
@@ -453,7 +472,6 @@ function MadrigalBoard({
   const opponentPlayerId = activePlayerId === "0" ? "1" : "0";
   const opponent = G.players[opponentPlayerId];
   const [activeCardId, setActiveCardId] = React.useState<string>("");
-  const [detailedCardId, setDetailedCardId] = React.useState<string>("");
   const [activeCardPlayer, setActiveCardPlayer] =
     React.useState<Player>(activePlayerId);
   const selectCard = (card: Card, player: Player) => {
@@ -519,6 +537,9 @@ function MadrigalBoard({
   };
   console.log({ currentPlayerId, opponentPlayerId, activePlayerId });
   const getHelpText = () => {
+    if (ctx.gameover) {
+      return "Game over!";
+    }
     if (currentPlayerId !== activePlayerId) {
       return "Wait for other player to play";
     }
@@ -528,6 +549,10 @@ function MadrigalBoard({
       "Unknown state. Please reset game"
     );
   };
+  const detailedCard = [
+    ...player.board.cardSlots,
+    ...opponent.board.cardSlots,
+  ].find((slot: any) => slot.card?.id === detailedCardId)?.card;
 
   return (
     <div
@@ -588,7 +613,7 @@ function MadrigalBoard({
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
-            width: 200,
+            width: 300,
           }}
         >
           <Chat sendChatMessage={sendChatMessage} chatMessages={chatMessages} />
@@ -610,9 +635,6 @@ function MadrigalBoard({
           </div>
           <Deck deck={G.deck} />
           <div>
-            <h4 style={{ color: "white", width: 150, overflowWrap: "normal" }}>
-              {getHelpText()}
-            </h4>
             {player.passed && <h2>Passed</h2>}
             <h2>Points {player.points}</h2>
             <h2>Games {player.games}</h2>
@@ -659,9 +681,7 @@ function MadrigalBoard({
             }}
           />
           <div style={{ height: 40 }}>
-            {ctx.gameover && (
-              <h1 style={{ textAlign: "center" }}>{ctx.gameover}</h1>
-            )}
+            <h2 style={{ textAlign: "center" }}>{getHelpText()}</h2>
           </div>
           <PlayerBoard
             isOpponent={false}
@@ -736,22 +756,16 @@ function MadrigalBoard({
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            width: 200,
+            width: 300,
           }}
         >
-          <SelectedCard
-            card={
-              [...player.board.cardSlots, ...opponent.board.cardSlots].find(
-                (slot: any) => slot.card?.id === detailedCardId
-              )?.card
-            }
-          />
+          <DetailedCard card={detailedCard} />
         </div>
       </div>
       <Tooltip
         place="right"
         anchorSelect=".Card-Hand-Bottom"
-        delayShow={100}
+        delayShow={200}
         variant="info"
         style={{
           minHeight: cardHeight / 2,
