@@ -100,6 +100,22 @@ it("Playing card removes it from hand", () => {
   expect(postPlayHand?.length).toBe((prePlayHand?.length || 0) - 1);
 });
 
+it("Moving board to graveyard resets cards", () => {
+  const scenario = makeScenario((initState, ctx) => {
+    const warrior = makeCard("Warrior", "green");
+    const buffedWarrior = { ...warrior, points: 666 };
+    const addWarrior = addCardToBoard("0", buffedWarrior, 0);
+    const moveToGraveyard = boardToGraveyard("0");
+    return _.flow(addWarrior, moveToGraveyard)(initState);
+  });
+  const client = Client({
+    game: scenario,
+  });
+  const playerState = client.getState()?.G.players[0];
+  expect(playerState?.board.cardSlots[0].card).toBeFalsy();
+  expect(playerState?.graveyard[0].points).toBe(8);
+});
+
 it("Column multiplies points", () => {
   const topIdx = 1;
   const midIdx = 1 + nCols;

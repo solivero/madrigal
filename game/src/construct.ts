@@ -438,7 +438,8 @@ function boardToGraveyard(player: Player): GameStateProducer {
   return updatePlayer(player, (playerState) => {
     const boardCards = playerState.board.cardSlots
       .filter((slot) => slot.card)
-      .map((slot) => slot.card as Card);
+      .map((slot) => slot.card as Card)
+      .map((card) => ({ ...card, points: card.basePoints, effects: {} }));
     const emptyCardSlots = playerState.board.cardSlots.map(fp.omit("card"));
     return {
       graveyard: playerState.graveyard.concat(boardCards),
