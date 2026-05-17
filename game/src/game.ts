@@ -17,6 +17,7 @@ import {
   playCardFromBoard,
   playCardFromHand,
 } from "./moves";
+import { enumerate } from "./ai";
 import fp from "lodash/fp";
 import _ from "lodash";
 
@@ -201,6 +202,7 @@ const Madrigal: Game<GameState> = {
       return "Player 2 won!";
     }
   },
+  ai: { enumerate },
 };
 
 export { Madrigal };

@@ -214,6 +214,15 @@ function addBuffs(player: Player): GameStateProducer {
         effects: { jester: 0 },
       };
     }
+    // Fog wins over Standard (flag) and over all buffs for non-heroes.
+    // Heroes / priests are immune to fog.
+    const fogPresent = !!getSlotByCardName(effectSlots, "Fog");
+    if (fogPresent && !card.isHero) {
+      return {
+        points: 0,
+        effects: { fog: -card.basePoints },
+      };
+    }
     // First Jester - removes all other!
     // Get modifiers for buffs
     // Get modifiers for effects that are based on buffs (i.e fog and flag)
@@ -274,7 +283,7 @@ function getFlagEffect(
   card: Card,
   buffedPoints: number
 ): number {
-  const flag = !!getSlotByCardName(effectSlots, "Flag");
+  const flag = !!getSlotByCardName(effectSlots, "Standard");
   if (flag) {
     return card.isHero ? 0 : buffedPoints;
   }

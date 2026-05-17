@@ -1,0 +1,31 @@
+{
+  "name": "madrigal",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "game",
+    "server",
+    "frontend"
+  ],
+  "scripts": {
+    "build:core": "npm run build --workspace=@madrigal/core",
+    "dev:core": "npm run build --workspace=@madrigal/core -- --watch",
+    "dev:server": "npm run start-dev --workspace=@madrigal/server",
+    "dev:frontend": "npm run dev --workspace=@madrigal/frontend",
+    "dev": "npm run build:core && concurrently -n core,server,frontend -c blue,green,magenta \"npm run dev:core\" \"npm run dev:server\" \"npm run dev:frontend\"",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "overrides": {
+    "is-generator-function": "^1.1.0"
+  }
+}

@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="plank" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a1f12"/>
+      <stop offset="0.5" stop-color="#2a160c"/>
+      <stop offset="1" stop-color="#1c0e08"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9 0.08" numOctaves="2" seed="7"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.22 0"/>
+    </filter>
+  </defs>
+
+  <!-- base wood colour -->
+  <rect width="256" height="256" fill="url(#plank)"/>
+  <!-- horizontal grain via streaky noise -->
+  <rect width="256" height="256" filter="url(#grain)" opacity="0.85"/>
+
+  <!-- plank seams (two horizontal lines splitting into 3 boards) -->
+  <line x1="0" y1="86"  x2="256" y2="86"  stroke="#08040a" stroke-width="2"/>
+  <line x1="0" y1="170" x2="256" y2="170" stroke="#08040a" stroke-width="2"/>
+  <!-- highlight on each seam upper edge -->
+  <line x1="0" y1="87"  x2="256" y2="87"  stroke="rgba(80,52,30,0.45)" stroke-width="1"/>
+  <line x1="0" y1="171" x2="256" y2="171" stroke="rgba(80,52,30,0.45)" stroke-width="1"/>
+
+  <!-- knots scattered -->
+  <g fill="#0e0604">
+    <ellipse cx="44"  cy="38"  rx="9" ry="5" />
+    <ellipse cx="180" cy="120" rx="11" ry="6"/>
+    <ellipse cx="98"  cy="212" rx="8" ry="4"/>
+    <ellipse cx="218" cy="58"  rx="6" ry="3"/>
+  </g>
+  <g fill="rgba(60,36,20,0.55)">
+    <ellipse cx="44"  cy="38"  rx="5" ry="2.5"/>
+    <ellipse cx="180" cy="120" rx="6" ry="3"/>
+    <ellipse cx="98"  cy="212" rx="4" ry="2"/>
+  </g>
+
+  <!-- small nail dots near seams -->
+  <g fill="#15090a">
+    <circle cx="36"  cy="86"  r="1.5"/>
+    <circle cx="220" cy="86"  r="1.5"/>
+    <circle cx="60"  cy="170" r="1.5"/>
+    <circle cx="200" cy="170" r="1.5"/>
+  </g>
+  <g fill="rgba(120,85,45,0.55)">
+    <circle cx="36"  cy="85"  r="0.6"/>
+    <circle cx="220" cy="85"  r="0.6"/>
+    <circle cx="60"  cy="169" r="0.6"/>
+    <circle cx="200" cy="169" r="0.6"/>
+  </g>
+</svg>
