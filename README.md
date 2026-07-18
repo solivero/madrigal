@@ -41,14 +41,10 @@ Open two browser tabs at `http://localhost:3000`, create a match in one, join fr
 
 ## Production deploy (Google App Engine)
 
-The two services deploy independently. Make sure `npm run build:core` has run first so the compiled `dist/` is present for the server's bundled install.
+The two services deploy independently but are bundled in a `deploy.sh` script to keep the core package consistent between frontend/backend. The script builds @madrigal/core into a tarball which is uploaded to App Engine builder and installed from file without relying on the private NPM repository which kept giving 404/403 no matter what I tried.
 
 ```bash
-# Backend (game server + lobby)
-cd server && npm run deploy
-
-# Frontend (static SPA)
-cd frontend && npm run build && gcloud app deploy app.yaml
+./deploy.sh
 ```
 
 Both services target the `nodejs22` runtime.
