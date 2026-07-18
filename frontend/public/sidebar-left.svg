@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 900" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="banner" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9a2230"/>
+      <stop offset="0.55" stop-color="#5a1018"/>
+      <stop offset="1" stop-color="#2a0810"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8c068"/>
+      <stop offset="0.5" stop-color="#a87830"/>
+      <stop offset="1" stop-color="#5a3a14"/>
+    </linearGradient>
+    <linearGradient id="iron" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1d18"/>
+      <stop offset="1" stop-color="#0d0707"/>
+    </linearGradient>
+    <radialGradient id="candleGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(255,210,140,0.8)"/>
+      <stop offset="1" stop-color="rgba(180,90,40,0)"/>
+    </radialGradient>
+  </defs>
+
+  <!-- vertical iron rod down the centre -->
+  <rect x="68" y="0" width="4" height="900" fill="url(#iron)"/>
+  <!-- decorative rings at top + bottom of rod -->
+  <circle cx="70" cy="30"  r="6" fill="none" stroke="url(#gold)" stroke-width="2"/>
+  <circle cx="70" cy="870" r="6" fill="none" stroke="url(#gold)" stroke-width="2"/>
+
+  <!-- top flourish -->
+  <g transform="translate(70 50)" stroke="url(#gold)" stroke-width="1.5" fill="none" opacity="0.85">
+    <path d="M -22 0 Q 0 -10 22 0"/>
+    <path d="M -30 -2 Q 0 -16 30 -2"/>
+    <circle cx="0" cy="-18" r="2.5" fill="url(#gold)" stroke="none"/>
+  </g>
+
+  <!-- hanging banner -->
+  <g transform="translate(70 90)">
+    <!-- rope tether -->
+    <line x1="0" y1="0" x2="0" y2="18" stroke="#3a2418" stroke-width="2"/>
+    <!-- banner shape -->
+    <path d="M -42 20 L 42 20 L 38 360 L 22 386 L 0 360 L -22 386 L -38 360 Z"
+          fill="url(#banner)" stroke="url(#gold)" stroke-width="1.4"/>
+    <!-- inner shadow on edges -->
+    <path d="M -42 20 L -36 50 L -36 350 L -42 360 Z" fill="rgba(0,0,0,0.45)"/>
+    <path d="M  42 20 L  36 50 L  36 350 L  42 360 Z" fill="rgba(0,0,0,0.45)"/>
+    <!-- crest emblem -->
+    <g transform="translate(0 140) scale(0.85)">
+      <path d="M 0 -32 L 22 -22 V 0 C 22 14 14 24 0 30 C -14 24 -22 14 -22 0 V -22 Z"
+            fill="url(#gold)" stroke="#0e0805" stroke-width="1"/>
+      <path d="M 0 -22 L 14 -14 L 10 8 L 0 18 L -10 8 L -14 -14 Z"
+            fill="#7a1f2b"/>
+      <circle cx="0" cy="-2" r="4" fill="#f4ead5"/>
+    </g>
+    <!-- decorative knot below crest -->
+    <g transform="translate(0 240)" fill="url(#gold)" opacity="0.75">
+      <circle cx="0" cy="0" r="4"/>
+      <path d="M -10 0 L 10 0" stroke="url(#gold)" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- iron sconce mid-rod -->
+  <g transform="translate(70 560)" class="sidebar-sconce-left">
+    <!-- arm -->
+    <path d="M 0 0 Q -8 -6 -22 -6" stroke="url(#iron)" stroke-width="3" fill="none"/>
+    <!-- candle base -->
+    <rect x="-30" y="-10" width="14" height="6" fill="url(#iron)" rx="1"/>
+    <!-- candle -->
+    <rect x="-26" y="-22" width="6" height="14" fill="#e6d5a8" rx="0.5"/>
+    <!-- wick -->
+    <rect x="-23.5" y="-24" width="1" height="2" fill="#1a0e08"/>
+    <!-- flame -->
+    <g transform="translate(-23 -24)">
+      <ellipse cx="0" cy="0" rx="40" ry="40" fill="url(#candleGlow)"/>
+      <path d="M 0 0 C -3 -4 -1 -10 0 -14 C 1 -10 3 -4 0 0 Z" fill="#ffaa44">
+        <animate attributeName="d" dur="2.4s" repeatCount="indefinite"
+          values="
+            M 0 0 C -3 -4 -1 -10 0 -14 C 1 -10 3 -4 0 0 Z;
+            M 0 0 C -2 -4 -1 -12 0 -16 C 2 -10 3 -4 0 0 Z;
+            M 0 0 C -4 -4 -1 -9 0 -12 C 1 -9 4 -4 0 0 Z;
+            M 0 0 C -3 -4 -1 -10 0 -14 C 1 -10 3 -4 0 0 Z"/>
+      </path>
+      <path d="M 0 -2 C -1.5 -5 -1 -9 0 -12 C 1 -9 1.5 -5 0 -2 Z" fill="#ffe6a8"/>
+    </g>
+  </g>
+
+  <!-- bottom flourish -->
+  <g transform="translate(70 850)" stroke="url(#gold)" stroke-width="1.5" fill="none" opacity="0.85">
+    <path d="M -22 0 Q 0 10 22 0"/>
+    <path d="M -30 2 Q 0 16 30 2"/>
+    <circle cx="0" cy="18" r="2.5" fill="url(#gold)" stroke="none"/>
+  </g>
+</svg>

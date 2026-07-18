@@ -491,3 +491,42 @@ it("Full red row kills last card from opponent", () => {
   // Card should have been removed
   expect(opponentPostBoard.cardSlots[1].card).toBeFalsy();
 });
+
+it("Fog wins over Standard in the same row", () => {
+  const scenario = makeScenario((initState) => {
+    // Blue row with both Fog (left side slot) and Standard (right side slot)
+    const fog = makeCard("Fog", "blue");
+    const addFog = addCardToBoard("0", fog, nCols);
+    const flag = makeCard("Standard", "blue");
+    const addFlag = addCardToBoard("0", flag, nCols + (nCols - 1));
+
+    const warrior = makeCard("Warrior", "blue");
+    const addWarrior = addCardToBoard("0", warrior, nCols + 1);
+    const smith = makeCard("Smith", "blue");
+    const addSmith = addCardToBoard("0", smith, nCols + 2);
+    const priest = makeCard("Priest", "blue");
+    const addPriest = addCardToBoard("0", priest, nCols + 3);
+    const treasurer = makeCard("Treasurer", "blue");
+    const addTreasurer = addCardToBoard("0", treasurer, nCols + 4);
+
+    return _.flow(
+      addFog,
+      addFlag,
+      addWarrior,
+      addSmith,
+      addPriest,
+      addTreasurer
+    )(initState);
+  });
+  const client = Client({ game: scenario });
+  const state = client.getState();
+  if (!state) throw Error("No state");
+  const blueRow = getRow(state.G.players[0].board, 1);
+
+  // Non-heroes are zeroed by fog, not doubled by flag
+  expect(blueRow[1].card?.points).toBe(0); // warrior
+  expect(blueRow[2].card?.points).toBe(0); // smith
+  // Heroes (incl. priest) are immune to both fog and flag
+  expect(blueRow[3].card?.points).toBe(7); // priest
+  expect(blueRow[4].card?.points).toBe(10); // treasurer
+});

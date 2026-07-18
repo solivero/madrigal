@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 900" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="bannerR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a5c52"/>
+      <stop offset="0.55" stop-color="#1a3a30"/>
+      <stop offset="1" stop-color="#0a1c18"/>
+    </linearGradient>
+    <linearGradient id="goldR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8c068"/>
+      <stop offset="0.5" stop-color="#a87830"/>
+      <stop offset="1" stop-color="#5a3a14"/>
+    </linearGradient>
+    <linearGradient id="ironR" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a1d18"/>
+      <stop offset="1" stop-color="#0d0707"/>
+    </linearGradient>
+    <radialGradient id="candleGlowR" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="rgba(255,210,140,0.8)"/>
+      <stop offset="1" stop-color="rgba(180,90,40,0)"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="68" y="0" width="4" height="900" fill="url(#ironR)"/>
+  <circle cx="70" cy="30"  r="6" fill="none" stroke="url(#goldR)" stroke-width="2"/>
+  <circle cx="70" cy="870" r="6" fill="none" stroke="url(#goldR)" stroke-width="2"/>
+
+  <g transform="translate(70 50)" stroke="url(#goldR)" stroke-width="1.5" fill="none" opacity="0.85">
+    <path d="M -22 0 Q 0 -10 22 0"/>
+    <path d="M -30 -2 Q 0 -16 30 -2"/>
+    <circle cx="0" cy="-18" r="2.5" fill="url(#goldR)" stroke="none"/>
+  </g>
+
+  <!-- weapon rack: crossed quill + sword -->
+  <g transform="translate(70 130)" stroke-linecap="round">
+    <!-- mounting plaque -->
+    <rect x="-32" y="-8" width="64" height="14" fill="url(#ironR)" rx="2"/>
+    <!-- quill -->
+    <g transform="rotate(28)">
+      <line x1="-44" y1="0" x2="44" y2="0" stroke="#5a3a18" stroke-width="2"/>
+      <path d="M -44 0 C -50 -8 -52 -2 -46 4 Z" fill="#8a6028"/>
+      <path d="M 30 -10 Q 44 -2 50 6 Q 42 -2 30 -10 Z" fill="url(#goldR)"/>
+    </g>
+    <!-- sword crossed the other way -->
+    <g transform="rotate(-28)">
+      <line x1="-44" y1="0" x2="36" y2="0" stroke="#a8a8b0" stroke-width="2.5"/>
+      <line x1="36" y1="0" x2="46" y2="0" stroke="#cfcfd6" stroke-width="2.5"/>
+      <rect x="-50" y="-2" width="14" height="4" fill="url(#goldR)" rx="1"/>
+      <rect x="-46" y="-6" width="6" height="12" fill="#5a3a18"/>
+      <line x1="-52" y1="-7" x2="-52" y2="7" stroke="url(#goldR)" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- hanging banner -->
+  <g transform="translate(70 200)">
+    <line x1="0" y1="0" x2="0" y2="18" stroke="#3a2418" stroke-width="2"/>
+    <path d="M -42 20 L 42 20 L 38 320 L 22 346 L 0 320 L -22 346 L -38 320 Z"
+          fill="url(#bannerR)" stroke="url(#goldR)" stroke-width="1.4"/>
+    <path d="M -42 20 L -36 50 L -36 310 L -42 320 Z" fill="rgba(0,0,0,0.45)"/>
+    <path d="M  42 20 L  36 50 L  36 310 L  42 320 Z" fill="rgba(0,0,0,0.45)"/>
+    <!-- scribe motif: ink pot with quill -->
+    <g transform="translate(0 130)">
+      <rect x="-14" y="-4" width="28" height="20" fill="url(#goldR)" rx="2" stroke="#0e0805"/>
+      <ellipse cx="0" cy="-4" rx="14" ry="3" fill="#0a0608"/>
+      <line x1="0" y1="-4" x2="14" y2="-26" stroke="url(#goldR)" stroke-width="2"/>
+      <path d="M 12 -22 Q 22 -22 24 -10 Q 16 -16 12 -22 Z" fill="url(#goldR)"/>
+    </g>
+    <g transform="translate(0 220)" fill="url(#goldR)" opacity="0.75">
+      <circle cx="0" cy="0" r="4"/>
+      <path d="M -10 0 L 10 0" stroke="url(#goldR)" stroke-width="2"/>
+    </g>
+  </g>
+
+  <!-- iron sconce mirrored -->
+  <g transform="translate(70 600)">
+    <path d="M 0 0 Q 8 -6 22 -6" stroke="url(#ironR)" stroke-width="3" fill="none"/>
+    <rect x="16" y="-10" width="14" height="6" fill="url(#ironR)" rx="1"/>
+    <rect x="20" y="-22" width="6" height="14" fill="#e6d5a8" rx="0.5"/>
+    <rect x="22.5" y="-24" width="1" height="2" fill="#1a0e08"/>
+    <g transform="translate(23 -24)">
+      <ellipse cx="0" cy="0" rx="40" ry="40" fill="url(#candleGlowR)"/>
+      <path d="M 0 0 C -3 -4 -1 -10 0 -14 C 1 -10 3 -4 0 0 Z" fill="#ffaa44">
+        <animate attributeName="d" dur="2.8s" repeatCount="indefinite"
+          values="
+            M 0 0 C -3 -4 -1 -10 0 -14 C 1 -10 3 -4 0 0 Z;
+            M 0 0 C -4 -4 -2 -11 0 -15 C 2 -10 4 -4 0 0 Z;
+            M 0 0 C -2 -4 -1 -9 0 -12 C 2 -9 3 -4 0 0 Z;
+            M 0 0 C -3 -4 -1 -10 0 -14 C 1 -10 3 -4 0 0 Z"/>
+      </path>
+      <path d="M 0 -2 C -1.5 -5 -1 -9 0 -12 C 1 -9 1.5 -5 0 -2 Z" fill="#ffe6a8"/>
+    </g>
+  </g>
+
+  <g transform="translate(70 850)" stroke="url(#goldR)" stroke-width="1.5" fill="none" opacity="0.85">
+    <path d="M -22 0 Q 0 10 22 0"/>
+    <path d="M -30 2 Q 0 16 30 2"/>
+    <circle cx="0" cy="18" r="2.5" fill="url(#goldR)" stroke="none"/>
+  </g>
+</svg>

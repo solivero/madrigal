@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0d090"/>
+      <stop offset="0.5" stop-color="#d4a857"/>
+      <stop offset="1" stop-color="#8a5a1f"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#g)" stroke-width="1.4" stroke-linecap="round" fill="none">
+    <!-- inner brace -->
+    <path d="M6 30 Q6 6 30 6" />
+    <!-- outer curl -->
+    <path d="M6 38 Q6 14 24 12 Q34 11 38 6" opacity="0.85" />
+    <!-- diagonal tine -->
+    <path d="M14 14 L26 26" opacity="0.5" />
+    <!-- tiny spiral -->
+    <circle cx="11" cy="11" r="1.4" fill="url(#g)" stroke="none" />
+    <path d="M11 11 m-3 0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0" opacity="0.7" />
+    <!-- accent dot far in -->
+    <circle cx="34" cy="34" r="1" fill="url(#g)" stroke="none" opacity="0.7" />
+  </g>
+</svg>

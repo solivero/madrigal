@@ -1,1 +1,10 @@
-runtime: nodejs16
+runtime: nodejs22
+handlers:
+  - url: /(.*\.(js|css|svg|png|jpg|ico|webp|woff2|woff))$
+    static_files: dist/\1
+    upload: dist/.*\.(js|css|svg|png|jpg|ico|webp|woff2|woff)$
+    secure: always
+  - url: /.*
+    static_files: dist/index.html
+    upload: dist/index.html
+    secure: always

@@ -1,39 +1,68 @@
-Use NVM and Node 16 (nvm use 16)
+# Madrigal
 
-Project consists of 3 npm packages
+A two-player turn-based card game built on [boardgame.io](https://boardgame.io). Cozy medieval theme, deployed on Google App Engine.
 
-- @madrigal/core
-- @madrigal/frontend
-- @madrigal/server
+## Architecture
 
-Core contains game logic and is a dependency of frontend and server. Server and frontend are deployed with App Engine. Frontend is a React app and backend a simple Express server.
+Three workspaces under one root:
 
-First install core with `npm install` inside `game`.
+- **`game/`** — `@madrigal/core`: pure game logic (rules, moves, cards). No UI.
+- **`server/`** — `@madrigal/server`: boardgame.io WebSocket + lobby server (Express/Koa).
+- **`frontend/`** — `@madrigal/frontend`: React 18 + Vite 6 + Tailwind v4 + Framer Motion.
 
-In frontend and server packages:
+All three are wired together via **npm workspaces** — no more `npm pack` / `npm link` dance.
 
-Core package @madrigal/core is built from `game` directory. It is *not* an explicit dependency in server and frontend package.json because deployment and local dev environment install it differently.
+## Prerequisites
 
-### Production
+- Node 22 (`nvm use` reads `.nvmrc`)
+- npm 10+
 
-The core package has to be packed up and uploaded so App Engine can install it on server side. Any relative references to `../game` dir will break in deployment.
+## Setup
 
-Pack @madrigal/core (`npm pack ../game`) and install from tarball, saving the path and hash in package.json dependency list. This is done automatically by `npm deploy`.
-
-packge.json and package-lock.json will now have changes for the added dependency that can safely be ignored (git co package.json). If you want to keep developing locally, do `npm link @madrigal/core` again.
-
-### Dev environment
-
-Link core package to global (Node 16) node_module
-
-```
-cd game
+```bash
+nvm use
 npm install
-npm link
+npm run build:core
 ```
 
+## Local dev
 
-In each of frontend and server dirs:  
-Run `npm install` and then `npm link @madrigal/core` to point it to global link setup previously by `npm link` in `game/` dir.
+```bash
+npm run dev
+```
 
+That runs three processes concurrently:
 
+- `core` — `tsc --watch` on the game logic
+- `server` — boardgame.io server on http://localhost:8000 (lobby API on the same port)
+- `frontend` — Vite dev server on http://localhost:3000
+
+Open two browser tabs at `http://localhost:3000`, create a match in one, join from the other.
+
+## Production deploy (Google App Engine)
+
+The two services deploy independently but are bundled in a `deploy.sh` script to keep the core package consistent between frontend/backend. The script builds @madrigal/core into a tarball which is uploaded to App Engine builder and installed from file without relying on the private NPM repository which kept giving 404/403 no matter what I tried.
+
+```bash
+./deploy.sh
+```
+
+Both services target the `nodejs22` runtime.
+
+## Useful scripts
+
+| Command           | What it does                                    |
+| ----------------- | ----------------------------------------------- |
+| `npm run dev`     | Watch core + run server + run frontend dev      |
+| `npm run build`   | Build all workspaces                            |
+| `npm run test`    | Run jest in `@madrigal/core`                    |
+| `npm run lint`    | Biome lint check                                |
+| `npm run format`  | Biome format write                              |
+
+## Stack notes
+
+- **React 18 + Vite 6** — replaced Create React App (Webpack).
+- **Tailwind v4** — uses the new `@theme` CSS-variable token system, no `tailwind.config.js`.
+- **Framer Motion 11** — card animations, layout transitions, reduced-motion-aware.
+- **boardgame.io 0.49.13** — pinned for game-logic API stability.
+- **Biome** — replaces ESLint + Prettier for a single lint/format step.
